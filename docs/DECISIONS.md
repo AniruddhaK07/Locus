@@ -124,5 +124,18 @@
 - **Context:** User instruction required verifying real browser screenshots at 360px and 1280px across normal, slow, partial, and sparse-data scenarios into `docs/screens/`, without adding runtime overhead.
 - **Decision:** Installed `playwright` strictly as a `devDependency` (zero production bundle cost). Authored `scripts/captureScreens.ts` to spin up headless Chromium, set localStorage mock scenarios, navigate responsive viewports, and capture authentic PNG screenshots into `docs/screens/`. Also verifies honest error states, null handling, and zero browser console errors.
 
+---
+
+### DEC-016: Interactive Weighting Simulator on Method Screen
+- **Context:** §7 & LOCUS_UI_PROMPT require explaining the scoring weights and providing an interactive weight preview or clear simulation without modifying the underlying engine.
+- **Decision:** Built a reactive simulator component on `/method` which takes the base weights from `engine.method().weights` and projects the effect of priority boosts (1.3× multiplier) and confidence attenuation in real-time on a proportional CSS bar. Zero mutation to engine state occurs.
+
+---
+
+### DEC-017: Standardized Pedestrian Walk-Time Translations for Amenity Radii
+- **Context:** Non-technical relocation seekers think in terms of minutes walked rather than abstract meter radii (e.g. 800m vs 1500m).
+- **Decision:** Calculate pedestrian walk times assuming standard 5 km/h walking pace (~12 minutes per kilometer), labeling 500m as ~6 min walk, 800m as ~10 min walk, and 1500m as ~18 min walk alongside the exact Overpass query boundary.
+
+
 
 

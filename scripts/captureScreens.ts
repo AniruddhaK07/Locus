@@ -82,6 +82,30 @@ async function main() {
     console.log("✓ Captured results-map-view-desktop.png");
   }
 
+  // 7. Area Detail desktop & mobile (/area/node%2F429918282)
+  const areaUrl = `${baseUrl}/area/node%2F429918282`;
+  await pageDesktop.goto(areaUrl, { waitUntil: "domcontentloaded" });
+  await pageDesktop.waitForTimeout(700);
+  await pageDesktop.screenshot({ path: path.join(outDir, "area-desktop.png"), fullPage: true });
+  console.log("✓ Captured area-desktop.png");
+
+  await pageMobile.goto(areaUrl, { waitUntil: "domcontentloaded" });
+  await pageMobile.waitForTimeout(700);
+  await pageMobile.screenshot({ path: path.join(outDir, "area-360.png"), fullPage: true });
+  console.log("✓ Captured area-360.png");
+
+  // 8. Method screen desktop & mobile (/method)
+  const methodUrl = `${baseUrl}/method`;
+  await pageDesktop.goto(methodUrl, { waitUntil: "domcontentloaded" });
+  await pageDesktop.waitForTimeout(700);
+  await pageDesktop.screenshot({ path: path.join(outDir, "method-desktop.png"), fullPage: true });
+  console.log("✓ Captured method-desktop.png");
+
+  await pageMobile.goto(methodUrl, { waitUntil: "domcontentloaded" });
+  await pageMobile.waitForTimeout(700);
+  await pageMobile.screenshot({ path: path.join(outDir, "method-360.png"), fullPage: true });
+  console.log("✓ Captured method-360.png");
+
   await browser.close();
   console.log("All screenshots captured successfully.");
 }

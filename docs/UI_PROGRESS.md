@@ -2,7 +2,7 @@
 
 **Current Local Time:** 2026-10-04  
 **Current Branch:** `ui`  
-**Current Phase:** Phase U2 Complete — Results Screen & Streaming Integration  
+**Current Phase:** Phase U3 Complete — Area Detail & Method Screens  
 
 ---
 
@@ -16,10 +16,10 @@ If resuming after this checkpoint:
    - Design System: `docs/UI_DESIGN.md`
    - Prompt specs: `docs/UI_MASTER_PROMPT.md`
 3. **Run Health Checks:**
-   - `npm run check` (typecheck, lint, 15 test suites / 141 unit tests, feature ID guard)
+   - `npm run check` (typecheck, lint, 16 test suites / 145 unit tests, feature ID guard)
    - `npm run check:features`
-4. **Current Status:** Phase U0 (Foundation & Primitives), Phase U1 (App Shell, Home, Plan Stepper), and Phase U2 (Results Screen, Streaming, Cards, Refine, Compare Bar) are **100% complete, verified, and tagged**.
-5. **Next Target (Phase U3):** Area Detail screen (`/area/:id`) and Method explanation screen (`/method`).
+4. **Current Status:** Phases U0, U1, U2, and U3 are **100% complete, verified, and tagged**.
+5. **Next Target (Phase U4):** Compare screen (`/compare?ids=...`) with side-by-side metric matrix & winner indicators, and Saved Shortlist screen (`/saved`) with persistent state & compare shortcuts.
 
 ---
 
@@ -30,7 +30,7 @@ If resuming after this checkpoint:
 | **U0** | Foundation: tokens, fonts, primitives, guards, living docs | **DONE** | Tag `ui-U0` | 13 test suites, 133 tests passed (`check:features` passed) |
 | **U1** | Shell, Home, Plan stepper | **DONE** | Tag `ui-U1` | 14 test suites, 135 tests passed; builds cleanly (1.81s) |
 | **U2** | Results (streaming, cards, refine, compare bar) | **DONE** | Tag `ui-U2` | 15 test suites, 141 tests passed; Playwright visual screenshots captured |
-| **U3** | Area detail and Method | PENDING | — | — |
+| **U3** | Area detail and Method | **DONE** | Tag `ui-U3` | 16 test suites, 145 tests passed; Playwright visual screenshots captured |
 | **U4** | Compare and Saved | PENDING | — | — |
 | **U5** | Polish: responsive, a11y, reduced motion, banners, dev tools | PENDING | — | — |
 | **U6** | Final audit, docs, PR-ready | PENDING | — | — |
@@ -43,14 +43,7 @@ If resuming after this checkpoint:
 2. **Wordmark & Hero Alignment:** Removed centered width constraint (`margin: 0 auto; max-width: 820px`) from `.locus-home`; hero content now aligns to the same horizontal gutter (`1.5rem`) as the Header brand wordmark.
 3. **Button Motion:** Tightened primary button hover trailing arrow slide from 4px to 2px (`transform: translateX(2px)`).
 4. **Results Layout:** Strictly single-column candidate list at comfortable reading width (~760px). When Map view is toggled on wide viewports ($\ge 1024$px), candidate feed and sticky map render cleanly side by side.
-5. **Real Visual Rendering & Screenshots:** Installed `playwright` (devDependency only, 0 production bundle weight). Created `scripts/captureScreens.ts` and successfully captured 13 full-color screenshots at 1280px and 360px viewports in `docs/screens/`:
-   - `home-desktop.png`, `home-360.png`
-   - `plan-desktop.png`, `plan-360.png`
-   - `results-normal-desktop.png`, `results-normal-360.png`
-   - `results-slow-desktop.png`, `results-slow-360.png` (demonstrating stepped pipeline progress badges and skeleton placeholders)
-   - `results-partial-desktop.png`, `results-partial-360.png` (demonstrating partial search warning and dropped area count)
-   - `results-sparse-data-desktop.png`, `results-sparse-data-360.png` (demonstrating explicit "Insufficient data" badges and honest OSM lack-of-tagging explanations)
-   - `results-map-view-desktop.png` (demonstrating side-by-side reading-width candidate list and map pane)
+5. **Real Visual Rendering & Screenshots:** Installed `playwright` (devDependency only, 0 production bundle weight). Created `scripts/captureScreens.ts` and captured authentic 1280px and 360px screenshots in `docs/screens/`.
 6. **WCAG 2.2 Contrast Verification:**
    - `--ink` (`#2C2A2E`) on `--bg` (`#FFF3EB`): **13.04:1** (exceeds AAA $\ge 7:1$)
    - `--ink-muted` (`#6B6469`) on `--bg`: **5.28:1** (passes AA $\ge 4.5:1$)
@@ -68,54 +61,64 @@ If resuming after this checkpoint:
 
 ---
 
-## 4. Phase U2 Detailed Log
+## 4. Phase U3 Detailed Log
 
-- **Query Summary Bar:**
-  - Displays formatted search criteria: City, Workplace, transport mode, max commute, budget ceiling.
-  - "Copy link" action with transient accessible toast confirmation (`Toast`).
-  - "Edit" action navigating back to `/plan`.
-- **Progressive Pipeline Progress Bar (`PipelineProgress.tsx`):**
-  - Smooth 2px horizontal progress line (`scaleX` transform).
-  - Live stage chips: `Resolving City`, `Discovering Localities`, `Routing Commutes`, `Profiling Amenities`, `Calibrating Scores`.
-  - Seamless transition from loading state into a calm, compact 1-line summary upon completion (`✓ Search complete · Discovered and ranked N localities`).
-- **Candid Candidate Area Cards (`AreaCard.tsx`):**
-  - Rank `#N` and area name in display serif linking to `/area/:id`.
-  - Confidence mark glyph (`ConfidenceMark` with full honesty: solid circle for high, half-filled for medium, hollow ring for low).
-  - Match score in prominent display serif (`matchScore`) with accompanying data completeness readout (`Based on X% of available data`).
-  - 3 factual chips highlighting commute, local amenities, and rent estimates.
-  - Structured metric blocks for Commute (with `ProvenanceBadge`), Estimated Rent Band ("Not listing data"), and Safety Indicator ("Infrastructure indicator, not crime data").
-  - Sparse Data Resilience: When safety data is null, displays explicit `"Insufficient data"` with the specific reason (`"Insufficient OSM streetlamp or police tagging in this sector"`).
-  - Actions: Compare checkbox with accessible label, bookmark button connected reactively to `engine.saved`, and "Details →" button.
-- **Refinement & Filter Drawer (`RefineDisclosure.tsx`):**
-  - Accessible disclosure pattern (`aria-expanded`, smooth grid-template-rows expansion).
-  - Sort selector (Overall Match, Shortest Commute, Lowest Rent, Highest Amenities).
-  - Commute slider (15 to 90 min) with live tabular readout.
-  - Minimum match score slider (0% to 100%).
-  - "Hide low-confidence results" checkbox toggle.
-  - All sorting and filtering driven by pure engine function `selectAreas`.
-- **Sticky Compare Bar (`CompareStickyBar.tsx`):**
-  - Slides up from screen bottom when 1+ candidates are selected.
-  - Live badge counter (`N selected`).
-  - "Compare →" primary CTA navigating to `/compare?ids=...`.
-  - "Clear" button to deselect all.
-- **Side-by-Side Responsive Map Toggle:**
-  - Segmented control toggle between "List" and "Map".
-  - On wide viewports ($\ge 1024$px), candidate feed stays at reading width on the left while the map container expands into the right column.
+- **Area Detail Screen (`src/ui/pages/AreaDetailPage.tsx`, `src/ui/styles/detail.css`):**
+  - **Header:** Back button (`← Back to Results`), OSM ID badge pill, Locality title in display serif `Fraunces` with `ConfidenceMark`, and Save toggle button.
+  - **Match Score Hero:** Match score in `Fraunces` (`matchScore`) with verified data completeness percentage and heuristic formula provenance badge.
+  - **Editorial Narrative:** Plain-English summary explaining the score derivation.
+  - **Score Criteria Table (`data-feature="score-table"`):** Transparent breakdown of all scoring factors showing points assigned, max points, effective weight percentage, raw measured metric, and provenance badge with notes.
+  - **Commute Deep-Dive (`data-feature="commute-breakdown"`):** Cards for each configured destination comparing free-flow OSM road network duration with peak congestion estimates, route distance, transport mode, and max commute alerts.
+  - **Amenity Grid & Walking Access (`data-feature="amenity-grid"`):** Direct counts from OpenStreetMap query buffers mapped to walking time estimates at 5 km/h:
+    - Groceries & Daily (800m, ~10 min walk)
+    - Food & Dining (800m, ~10 min walk)
+    - Healthcare & Clinics (1500m, ~18 min walk)
+    - Schools & Education (1500m, ~18 min walk)
+    - Parks & Leisure (1500m, ~18 min walk)
+    - Transit Stops (Bus 500m, Rail/Metro 1500m)
+  - **Rent Band & User Override (`data-feature="rent-panel"`):**
+    - Estimated Market Band in ₹ with disclaimer: *"Estimated market tier-band from city calibration, not live listing portal data."*
+    - Interactive user rent override input and "Save Rent Override" button.
+    - Rescoring feedback confirming rent confidence promotion to high (user-verified).
+  - **Safety Infrastructure Panel (`data-feature="safety-panel"`):**
+    - Mandatory physical disclaimer: *"Disclaimer: This is an OSM infrastructure indicator based on physical features, not police crime data."*
+    - Physical infrastructure score (e.g. `10 / 10` or `"Insufficient data"` with reason).
+    - Breakdown of physical counts: Police stations within 1500m, Lit roads count tagged in OSM, Surveillance & CCTV nodes, and sector coverage notes.
+  - **Interactive Map Placeholder (`data-feature="map-placeholder"`):** Centroid coordinates and geometry indicator.
+  - **Verified Rental Portal Listings (`data-feature="portal-links"`):** Outbound buttons to MagicBricks, Housing.com, 99acres, and universal Google Search fallback with working query parameters.
+  - **States:** Zero-CLS skeleton state during loading, empty/not-found state with back navigation, and `sparse-data` state when data completeness is under 60%.
+
+- **Methodology Screen (`src/ui/pages/MethodPage.tsx`, `src/ui/styles/method.css`):**
+  - **Scoring Formulas & Explanation:** Clear statement that Locus uses zero black-box AI models for scoring.
+  - **Interactive Weighting Simulator:** Allows users to simulate priority presets (Balanced, Commute, Budget, Amenities, Safety) and see real-time shifts in relative weighting on a proportional bar without mutating engine state.
+  - **Base Weights & Attenuation Table (`data-feature="weights-table"`):** Full disclosure of criteria, base weights, and confidence factors (High 1.0×, Medium 0.7×, Low 0.35×, None 0.0×).
+  - **Renormalization Rule:** Clear explanation that missing data attenuates criterion influence rather than substituting fake defaults.
+  - **Query Radii Table (`data-feature="radii-table"`):** Radii in meters matched to estimated walking minutes and target OSM tags.
+  - **Routing Profiles Table (`data-feature="routing-profiles-table"`):** Status badges (Available / Unavailable), provider hosts, and direct vs heuristic engine types.
+  - **Confidence Legend (`data-feature="confidence-legend"`):** Cards explaining `osm`, `routing`, `heuristic`, `user`, and `unavailable` provenance tags.
+  - **Honest Limitations List (`data-feature="limitations-list"`):** Caveats regarding traffic heuristics, listing scraper absences, physical safety tags, and geographic OSM density variance.
+
+- **Visual Verification & Screenshots:**
+  - `docs/screens/area-desktop.png` (1280px)
+  - `docs/screens/area-360.png` (360px)
+  - `docs/screens/method-desktop.png` (1280px)
+  - `docs/screens/method-360.png` (360px)
 
 ---
 
 ## 5. Contract Feature Preservation Log
 
 All contract handles from `UI_CONTRACT.md` maintained and verified:
-- `results-screen`, `pipeline-progress`, `pipeline-stage`, `query-summary`, `copy-link-btn`, `edit-plan-btn`
-- `view-toggle`, `refine-toggle`, `sort-select`, `filter-commute`, `filter-confidence`
-- `area-list`, `area-card`, `area-rank`, `match-score`, `confidence-mark`, `key-facts`, `provenance-badge`
-- `save-area-btn`, `compare-checkbox`, `view-details-btn`
-- `compare-bar`, `compare-count`, `compare-submit-btn`, `load-more-btn`
-- `empty-results`, `partial-data-banner`, `results-map`
+- `area-detail-screen`, `area-header`, `back-btn`, `save-toggle-btn`
+- `match-score`, `explanation-text`, `score-table`, `criterion-row`
+- `commute-breakdown`, `commute-card`, `amenity-grid`, `amenity-count-card`
+- `rent-panel`, `rent-override-input`, `save-rent-btn`
+- `safety-panel`, `safety-disclaimer`, `map-placeholder`
+- `portal-links`, `portal-link-btn`
+- `method-screen`, `weights-table`, `radii-table`, `routing-profiles-table`, `confidence-legend`, `limitations-list`
 
 ---
 
 ## 6. Known Gaps & Engine Notes
 
-- None. All 15 test suites and 141 tests pass; production bundle builds cleanly.
+- None. All 16 test suites and 145 tests pass; production bundle builds cleanly.

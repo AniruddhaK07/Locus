@@ -1,0 +1,186 @@
+/**
+ * Locus Methodology Screen Styles
+ *
+ * Editorial layout for /method
+ * Public mathematical disclosure, interactive simulator, zero black-box AI.
+ */
+
+.locus-method {
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  animation: locus-fade-up var(--dur-normal) var(--ease-out);
+}
+
+.locus-method__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--space-6);
+}
+
+.locus-method__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  margin: 0;
+  line-height: var(--leading-tight);
+}
+
+.locus-method__lead {
+  font-size: var(--text-base);
+  color: var(--ink-muted);
+  line-height: var(--leading-base);
+  margin: 0;
+}
+
+.locus-method__section {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.locus-method__section-title {
+  font-family: var(--font-serif);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  margin: 0;
+}
+
+.locus-method__section-desc {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  line-height: var(--leading-base);
+  margin: 0;
+}
+
+/* Simulator / Interactive Weight Preview */
+.locus-simulator {
+  background: var(--surface-raised);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.locus-simulator__title {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  margin: 0;
+}
+
+.locus-simulator__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.locus-simulator__btn {
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.locus-simulator__btn:hover {
+  border-color: var(--ink);
+}
+
+.locus-simulator__btn--active {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+
+.locus-simulator__preview-bar {
+  display: flex;
+  height: 24px;
+  width: 100%;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.locus-simulator__segment {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  transition: width var(--dur-normal) var(--ease-out);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
+/* Legend Grid */
+.locus-method__legend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+
+.locus-method__legend-card {
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.locus-method__legend-text {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  line-height: var(--leading-base);
+  margin: 0;
+}
+
+/* Limitations List */
+.locus-limitations-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.locus-limitations-list li {
+  position: relative;
+  padding-left: var(--space-5);
+  font-size: var(--text-xs);
+  line-height: var(--leading-base);
+  color: var(--ink);
+}
+
+.locus-limitations-list li::before {
+  content: "—";
+  position: absolute;
+  left: 0;
+  color: var(--danger);
+  font-weight: var(--weight-semibold);
+}
