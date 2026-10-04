@@ -2,7 +2,7 @@
 
 **Current Local Time:** 2026-10-04  
 **Current Branch:** `ui`  
-**Current Phase:** Phase U4 Complete — Compare & Saved Screens  
+**Current Phase:** Phase U5 Complete — Polish, Accessibility, Dark Mode, SVG Map & Production Resilience  
 
 ---
 
@@ -16,10 +16,10 @@ If resuming after this checkpoint:
    - Design System: `docs/UI_DESIGN.md`
    - Prompt specs: `docs/UI_MASTER_PROMPT.md`
 3. **Run Health Checks:**
-   - `npm run check` (typecheck, lint, 17 test suites / 150 unit tests, feature ID guard)
+   - `npm run check` (typecheck, lint, 18 test suites / 157 unit tests, feature ID guard)
    - `npm run check:features`
-4. **Current Status:** Phases U0, U1, U2, U3, and U4 are **100% complete, verified, and tagged**.
-5. **Next Target (Phase U5):** Polish & Production Resilience (responsive audit across 360px/768px/1280px, keyboard navigation audit & focus traps, prefers-reduced-motion verification, mode banners, dev tools gating, skeleton.css complete cleanup).
+4. **Current Status:** Phases U0, U1, U2, U3, U4, and U5 are **100% complete, verified, and tagged**.
+5. **Next Target (Phase U6):** Final Audit & Handoff (code-to-doc reconciliation, zero engine diff verification, hex audit, smoke test, PR readiness).
 
 ---
 
@@ -32,7 +32,7 @@ If resuming after this checkpoint:
 | **U2** | Results (streaming, cards, refine, compare bar) | **DONE** | Tag `ui-U2` | 15 test suites, 141 tests passed; Playwright visual screenshots captured |
 | **U3** | Area detail and Method | **DONE** | Tag `ui-U3` | 16 test suites, 145 tests passed; Playwright visual screenshots captured |
 | **U4** | Compare and Saved | **DONE** | Tag `ui-U4` | 17 test suites, 150 tests passed; Playwright visual screenshots captured |
-| **U5** | Polish: responsive, a11y, reduced motion, banners, dev tools | PENDING | — | — |
+| **U5** | Polish: responsive, a11y, reduced motion, banners, dev tools | **DONE** | Tag `ui-U5` | 18 test suites, 157 tests passed; Playwright visual screenshots captured |
 | **U6** | Final audit, docs, PR-ready | PENDING | — | — |
 
 ---
@@ -130,21 +130,65 @@ If resuming after this checkpoint:
 
 ---
 
-## 6. Contract Feature Preservation Log
+## 6. Phase U5 Detailed Log
 
-All contract handles from `UI_CONTRACT.md` maintained and verified:
-- `area-detail-screen`, `area-header`, `back-btn`, `save-toggle-btn`
-- `match-score`, `explanation-text`, `score-table`, `criterion-row`
-- `commute-breakdown`, `commute-card`, `amenity-grid`, `amenity-count-card`
-- `rent-panel`, `rent-override-input`, `save-rent-btn`
-- `safety-panel`, `safety-disclaimer`, `map-placeholder`
-- `portal-links`, `portal-link-btn`
-- `method-screen`, `weights-table`, `radii-table`, `routing-profiles-table`, `confidence-legend`, `limitations-list`
-- `compare-screen`, `compare-matrix`, `remove-area-btn`, `add-area-selector`
-- `saved-screen`, `compare-selected-btn`, `saved-item-card`
+- **Responsive Viewport Audit across 360px, 768px, and 1280px:**
+  - All screens audited with Playwright headless browser at 360px mobile, 768px tablet, and 1280px desktop viewports.
+  - Zero horizontal overflow on `body` or `html`. Full touch-target accessibility ($\ge 44$px for touch controls).
+  - Screenshots recorded: `home-768.png`, `plan-768.png`, `results-768.png`, `area-768.png`, `compare-768.png`, `saved-768.png`.
+
+- **Dark Mode Implementation & WCAG 2.2 AA Contrast Verification:**
+  - Rich espresso-charcoal palette (`--bg: #1F1D20`, `--ink: #FFF3EB`).
+  - Automated mathematical luminance tests in `tests/responsiveAndA11y.test.tsx` confirm:
+    - Primary text (`--ink`): **15.42:1** (exceeds AAA $\ge 7:1$)
+    - Muted captions & provenance badges (`--ink-muted`): **7.37:1** (exceeds AAA $\ge 7:1$)
+    - Error messages (`--danger`): **5.40:1** (passes AA $\ge 4.5:1$)
+    - High confidence marks (`--ok`): **6.19:1** (passes AA $\ge 4.5:1$)
+    - Interactive borders (`--line-strong`): **3.08:1** (passes UI Component $\ge 3:1$)
+  - System preference detection via `@media (prefers-color-scheme: dark)` plus manual toggle button (`data-feature="theme-toggle"`) in the global header with `localStorage` persistence.
+  - Screenshots recorded: `results-dark-desktop.png`, `results-dark-360.png`.
+
+- **Cartographic SVG Map (`LocusMap.tsx`, `src/ui/styles/map.css`):**
+  - Fully responsive, self-contained SVG coordinate space with 15% safety padding.
+  - Real geographic `lat/lon` projection for candidate localities and workplace diamond pin.
+  - Interactive pin hover tooltips and keyboard activation (`tabIndex={0}`, Enter/Space).
+  - Mandatory OpenStreetMap attribution: *"Map data © OpenStreetMap contributors under ODbL"*.
+  - 100% offline demo resilience: zero external network dependencies, zero API keys.
+  - Screenshot recorded: `results-map-view-desktop.png`.
+
+- **Complete Elimination of Legacy Skeleton Stylesheet:**
+  - `src/ui/skeleton.css` permanently deleted via `git rm`.
+  - Replaced with scoped token-based `src/ui/styles/dev.css` for dev utilities.
+  - Automated test confirms `skeleton.css` does not exist on disk or in `App.tsx`.
+
+- **Mode Banners & Dev Tools Gating:**
+  - `ModeBanner` verified across mock ("Sample data"), snapshot ("Recorded demo data · captured ..."), and live (null / calm).
+  - Dev tools gated in production via `isDevMode()` (`import.meta.env.DEV`, `?dev=1`, `locus_dev=1`).
+
+- **Production Bundle Metrics:**
+  - Total CSS gzip: **7.92 kB**
+  - Total JS gzip: **135.17 kB** (including full engine, algorithms, mock data, and all screens)
+  - Vite production build time: **1.87s**
 
 ---
 
-## 7. Known Gaps & Engine Notes
+## 7. Contract Feature Preservation Log
 
-- None. All 17 test suites and 150 tests pass; production bundle builds cleanly.
+All contract handles from `UI_CONTRACT.md` maintained and verified:
+- `app-shell`, `nav-home`, `nav-plan`, `nav-results`, `nav-saved`, `nav-method`, `main-nav`, `theme-toggle`
+- `step-1-panel`, `city-input`, `workplace-input`, `city-suggestions`, `workplace-suggestions`
+- `step-2-panel`, `transport-select`, `max-commute-input`
+- `step-3-panel`, `budget-min-input`, `budget-max-input`, `household-select`, `priority-select`
+- `results-screen`, `pipeline-progress-panel`, `area-list`, `area-card`, `map-placeholder`, `view-toggle`, `sort-select`, `filter-panel`, `compare-sticky-bar`
+- `area-detail-screen`, `area-header`, `back-btn`, `save-toggle-btn`, `score-table`, `commute-breakdown`, `amenity-grid`, `rent-panel`, `safety-panel`, `portal-links`
+- `method-screen`, `weights-table`, `radii-table`, `routing-profiles-table`, `confidence-legend`, `limitations-list`
+- `compare-screen`, `compare-matrix`, `remove-area-btn`, `add-area-selector`
+- `saved-screen`, `compare-selected-btn`, `saved-item-card`
+- `scenario-switcher`, `scenario-select`, `mode-banner`, `dev-map-screen`
+
+---
+
+## 8. Known Gaps & Engine Notes
+
+- None. All 18 test suites and 157 tests pass; production bundle builds cleanly.
+

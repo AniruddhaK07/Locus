@@ -33,6 +33,24 @@ The palette is rooted in warm editorial tones. All contrast ratios are measured 
 2. Fills using `--soft` or `--accent` must always use `--ink` text (never white text).
 3. Colour never carries semantic meaning alone (confidence and errors always carry accompanying text or distinct glyphs).
 
+### 1.2 Dark Mode Palette & Measured WCAG 2.2 Contrast Ratios
+
+Dark mode uses a quiet, warm espresso-charcoal theme (`--bg: #1F1D20`). Contrast ratios measured against dark background:
+
+| Token | Hex Value | Role | Contrast vs `--bg` (`#1F1D20`) | WCAG 2.2 Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `--bg` | `#1F1D20` | Dark page background | Base (1:1) | — |
+| `--ink` | `#FFF3EB` | Primary text and headings | **15.42:1** | Exceeds AAA (≥ 7:1) |
+| `--ink-muted` | `#B5ACA8` | Secondary captions, provenance text | **7.37:1** | Exceeds AAA (≥ 7:1) |
+| `--line` | `#423E41` | Dividers and hairline borders | 1.81:1 | Decorative / Hairline |
+| `--line-strong`| `#6E676B` | Interactive borders & card outlines | **3.08:1** | Passes UI Component (≥ 3:1) |
+| `--soft` | `#383032` | Hover and table fills | 1.48:1 | Fill |
+| `--accent` | `#F7A8A1` | Highlights & active badges | **9.45:1** | Exceeds AAA (≥ 7:1) |
+| `--surface` | `#272528` | Elevated card surfaces | 1.15:1 | Surface |
+| `--surface-raised`| `#312E33`| Popovers, modals, dropdowns | 1.34:1 | Surface |
+| `--danger` | `#E0735E` | Validation errors and warnings | **5.40:1** | Passes AA (≥ 4.5:1) |
+| `--ok` | `#79A37F` | High confidence indicator | **6.19:1** | Passes AA (≥ 4.5:1) |
+
 ---
 
 ## 2. Typography
@@ -64,13 +82,13 @@ The palette is rooted in warm editorial tones. All contrast ratios are measured 
 ### Motion Rules
 1. Only `transform` and `opacity` (and hover background/border transitions) are animated.
 2. No bounce, wobble, parallax, or auto-playing loops.
-3. **Primary button hover:** coral fill sweeps in from bottom (`translateY(100%) -> translateY(0)`) while arrow glides 3px right. Press activates subtle scale `0.985`.
+3. **Primary button hover:** coral fill sweeps in from bottom (`translateY(100%) -> translateY(0)`) while arrow glides 2px right. Press activates subtle scale `0.985`.
 4. **Primary button loading:** label crossfades to a slim 2px sweeping line (no spinning rings).
 5. **Reduced Motion (`prefers-reduced-motion: reduce`):** All transforms and sweeps are disabled (`transform: none !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important;`). Verified by automated tests.
 
 ---
 
-## 4. Component Inventory & States (Phase U0 Primitives)
+## 4. Component Inventory & States
 
 | Primitive | Props & API | States Supported |
 | :--- | :--- | :--- |
@@ -90,12 +108,35 @@ The palette is rooted in warm editorial tones. All contrast ratios are measured 
 | `EmptyState` | `message: string`, `action?: { label, onClick }`, `icon?: ReactNode` | one sentence + one action |
 | `ErrorState` | `message: string`, `onRetry?: () => void`, `retryLabel?: string` | one sentence + one retry action |
 | `ModeBanner` | `mode: "mock"\|"snapshot"\|"live"`, `capturedDate?: string` | mock ("Sample data"), snapshot ("Recorded demo data · captured ..."), live (hidden) |
+| `LocusMap` | `points: MapPoint[]`, `workplace?`, `selectedId?`, `onSelectPoint?` | SVG cartographic projection, interactive pin aura, popovers, workplace pin, ODbL attribution |
 
 ---
 
-## 5. Browser Compatibility Notes
+## 5. Responsive Breakpoints & Viewport Grid
+
+Locus is audited and visually verified across 3 core viewport widths:
+
+1. **Mobile (360px):** Single-column stacked layout, full-width inputs, horizontal scroll on compare table with sticky pinned metric headers (`position: sticky; left: 0`), 44px min tap targets.
+2. **Tablet (768px):** Centered reading width (~680px), multi-column filters, inline header nav links with badge, spacious form cards.
+3. **Desktop (1280px):** 1120px max content column. On Results, toggling Map view splits into a comfortable dual-column layout (candidate feed left at 540px, sticky cartographic map right at 1fr).
+
+---
+
+## 6. Cartographic Map Specification (`LocusMap`)
+
+- **Rendering Engine:** Self-contained SVG coordinate space with zero external tile dependencies or API keys (100% offline demo resilience).
+- **Coordinate Projection:** Normalizes geographic `(lat, lon)` bounding box into responsive SVG `viewBox (800x500)` with 15% safety padding.
+- **Workplace Marker:** Distinct rotated diamond in `--danger` with white border and bold caption.
+- **Candidate Locality Pins:** Numbered circle markers with locality name labels, selection aura pulse, and keyboard accessibility (`tabIndex={0}`, Enter/Space activation).
+- **OSM Attribution:** Mandatory legal text: *"Map data © OpenStreetMap contributors under ODbL"*.
+
+---
+
+## 7. Browser Compatibility Notes
 
 - Tested against modern standards: Chrome, Firefox, Safari (WebKit), Edge.
 - Fluid typography leverages standard CSS `clamp()`.
 - Numeric alignment leverages `font-variant-numeric: tabular-nums`.
+- Reduced-motion mode tested and automated via `@media (prefers-reduced-motion: reduce)`.
+
 - Zero external font CDN requests: all fonts self-hosted in-bundle via npm `@fontsource/*`.

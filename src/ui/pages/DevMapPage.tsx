@@ -54,33 +54,47 @@ export function DevMapPage() {
   };
 
   return (
-    <main data-feature="dev-map-screen" data-state="ready" className="box">
+    <main data-feature="dev-map-screen" data-state="ready" className="locus-dev-page">
       <header>
         <h2>Developer Catalog & Wireframe Table of Contents (/_map)</h2>
-        <p>
+        <p style={{ marginTop: "8px", color: "var(--ink-muted)" }}>
           This screen lists all routes, interactive feature IDs, and engine scenario toggles.
           Use this to inspect and design every state without touching the engine logic.
         </p>
       </header>
 
       {/* 1. SCENARIO TOGGLES */}
-      <section className="box" style={{ marginTop: "16px" }}>
+      <section className="locus-dev-card">
         <h3>Engine Scenario Switchers (Mock Mode)</h3>
-        <p style={{ fontSize: "12px" }}>Click any button to switch the global engine scenario and jump to Results:</p>
-        <div className="grid">
+        <p style={{ fontSize: "var(--text-xs)", color: "var(--ink-muted)", margin: "8px 0" }}>
+          Click any button to switch the global engine scenario and jump to Results:
+        </p>
+        <div className="locus-dev-grid">
           {scenarios.map((s) => (
-            <div key={s.key} className="box">
+            <div key={s.key} className="locus-dev-item">
               <strong>{s.label}</strong>
-              <p style={{ fontSize: "11px", margin: "4px 0" }}>{s.desc}</p>
-              <div className="row">
+              <p style={{ fontSize: "11px", margin: "4px 0", color: "var(--ink-muted)" }}>{s.desc}</p>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "8px" }}>
                 <button
                   type="button"
                   onClick={() => handleActivateScenario(s.key)}
+                  style={{
+                    padding: "4px 10px",
+                    background: "var(--surface)",
+                    border: "1px solid var(--line-strong)",
+                    borderRadius: "var(--radius-sm)",
+                    fontSize: "var(--text-xs)",
+                    cursor: "pointer"
+                  }}
                 >
                   Activate
                 </button>
-                <Link to="/results" onClick={() => handleActivateScenario(s.key)}>
-                  [Activate & Go to /results]
+                <Link
+                  to="/results"
+                  onClick={() => handleActivateScenario(s.key)}
+                  style={{ fontSize: "var(--text-xs)", textDecoration: "underline" }}
+                >
+                  [Go to /results]
                 </Link>
               </div>
             </div>
@@ -89,9 +103,9 @@ export function DevMapPage() {
       </section>
 
       {/* 2. ROUTE DIRECTORY */}
-      <section className="box" style={{ marginTop: "16px" }}>
+      <section className="locus-dev-card">
         <h3>Complete Route Directory</h3>
-        <table>
+        <table className="locus-dev-table">
           <thead>
             <tr>
               <th>Route</th>
@@ -103,10 +117,10 @@ export function DevMapPage() {
             {routes.map((r) => (
               <tr key={r.path}>
                 <td>
-                  <Link to={r.path}><strong>{r.path}</strong></Link>
+                  <Link to={r.path} style={{ textDecoration: "underline" }}><strong>{r.path}</strong></Link>
                 </td>
                 <td>{r.name}</td>
-                <td>{r.desc}</td>
+                <td style={{ color: "var(--ink-muted)" }}>{r.desc}</td>
               </tr>
             ))}
           </tbody>
@@ -114,14 +128,14 @@ export function DevMapPage() {
       </section>
 
       {/* 3. FEATURE ID REGISTRY */}
-      <section className="box" style={{ marginTop: "16px" }}>
+      <section className="locus-dev-card">
         <h3>Stable Feature ID Registry ({features.length} elements)</h3>
-        <p style={{ fontSize: "12px" }}>
+        <p style={{ fontSize: "var(--text-xs)", color: "var(--ink-muted)", margin: "8px 0 12px" }}>
           Every interactive control and data container has <code>data-feature="&lt;id&gt;"</code>.
         </p>
-        <div className="row" style={{ gap: "6px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
           {features.map((f) => (
-            <span key={f} className="badge">
+            <span key={f} className="locus-dev-badge">
               {f}
             </span>
           ))}

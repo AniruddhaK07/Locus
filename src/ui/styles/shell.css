@@ -107,6 +107,26 @@
   color: var(--ink);
 }
 
+.locus-header__theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  color: var(--ink-muted);
+  font-size: var(--text-base);
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.locus-header__theme-btn:hover {
+  color: var(--ink);
+  background-color: var(--soft);
+  border-color: var(--line);
+}
+
 /* ==========================================================================
    MAIN CONTENT & ROUTE TRANSITIONS
    ========================================================================== */

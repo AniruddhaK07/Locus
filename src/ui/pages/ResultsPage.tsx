@@ -6,6 +6,7 @@ import { AreaCard } from "../components/AreaCard";
 import { PipelineProgress } from "../components/PipelineProgress";
 import { RefineDisclosure } from "../components/RefineDisclosure";
 import { CompareStickyBar } from "../components/CompareStickyBar";
+import { LocusMap } from "../components/LocusMap";
 import { Button } from "../primitives/Button";
 import { Card } from "../primitives/Card";
 import { Skeleton } from "../primitives/Skeleton";
@@ -392,18 +393,20 @@ export function ResultsPage() {
 
         {/* Map Column (Desktop side-by-side or active map container) */}
         {isMapActive && (
-          <div className="locus-results__map-col">
-            <div data-feature="map-placeholder" className="locus-map-container">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
-                <line x1="8" y1="2" x2="8" y2="18" />
-                <line x1="16" y1="6" x2="16" y2="22" />
-              </svg>
-              <span style={{ fontWeight: 500 }}>Interactive Map View</span>
-              <span style={{ fontSize: "var(--text-xs)" }}>
-                Showing {filteredAreas.length} candidate pins
-              </span>
-            </div>
+          <div className="locus-results__map-col" data-feature="map-placeholder">
+            <LocusMap
+              points={filteredAreas.map((a, idx) => ({
+                id: a.id,
+                name: a.name,
+                lat: a.lat,
+                lon: a.lon,
+                rank: idx + 1,
+                matchScore: a.matchScore,
+              }))}
+              workplace={prefs.workplace}
+              height="520px"
+              onSelectPoint={(id) => navigate(`/area/${encodeURIComponent(id)}`)}
+            />
           </div>
         )}
       </div>

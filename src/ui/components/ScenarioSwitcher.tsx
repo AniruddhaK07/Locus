@@ -27,7 +27,7 @@ export function ScenarioSwitcher() {
   };
 
   return (
-    <div className="dev-banner" data-feature="scenario-switcher">
+    <div className="locus-dev-banner" data-feature="scenario-switcher">
       <strong>[DEV SCENARIO SWITCHER]:</strong>
       <label htmlFor="scenario-select">Active Scenario:</label>
       <select

@@ -1,0 +1,87 @@
+/**
+ * Locus Developer Tools & Route Catalog Styles
+ * Pure token-based styles for dev-only routes and scenario switcher.
+ */
+
+.locus-dev-banner {
+  border-bottom: 1px dashed var(--accent);
+  padding: 6px var(--space-4);
+  background: var(--surface);
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+}
+
+.locus-dev-banner select {
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  background: var(--surface-raised);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  color: var(--ink);
+}
+
+.locus-dev-page {
+  padding: var(--space-4) 0;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+.locus-dev-page header {
+  margin-bottom: var(--space-6);
+}
+
+.locus-dev-card {
+  border: var(--border-hairline);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-6);
+  background: var(--surface);
+}
+
+.locus-dev-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.locus-dev-item {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  background: var(--surface-raised);
+}
+
+.locus-dev-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.locus-dev-table th,
+.locus-dev-table td {
+  border: var(--border-hairline);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+}
+
+.locus-dev-table th {
+  background: var(--soft);
+  font-weight: var(--weight-medium);
+}
+
+.locus-dev-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  background: var(--surface-raised);
+  color: var(--ink-muted);
+}

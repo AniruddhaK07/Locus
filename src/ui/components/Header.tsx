@@ -17,6 +17,29 @@ export function Header() {
     });
   }, [engine]);
 
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    if (typeof window !== "undefined") {
+      const saved = window.localStorage.getItem("locus_theme");
+      if (saved === "light" || saved === "dark") return saved;
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) return "dark";
+    }
+    return "light";
+  });
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("data-theme", theme);
+    }
+  }, [theme]);
+
+  const toggleTheme = () => {
+    const next = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem("locus_theme", next);
+    }
+  };
+
   return (
     <header className="locus-header" role="banner">
       {/* Dev-only Scenario Switcher (gated in production per §2.2) */}
@@ -84,6 +107,17 @@ export function Header() {
               </Link>
             </>
           )}
+
+          <button
+            type="button"
+            onClick={toggleTheme}
+            data-feature="theme-toggle"
+            className="locus-header__theme-btn"
+            aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            {theme === "dark" ? "☼" : "☾"}
+          </button>
         </nav>
       </div>
     </header>

@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import "./skeleton.css";
+import "./styles/dev.css";
 import "./styles/shell.css";
 import "./styles/home.css";
 import "./styles/plan.css";
@@ -8,6 +8,7 @@ import "./styles/detail.css";
 import "./styles/method.css";
 import "./styles/compare.css";
 import "./styles/saved.css";
+import "./styles/map.css";
 
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";

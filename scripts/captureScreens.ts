@@ -138,6 +138,58 @@ async function main() {
   await pageMobile.screenshot({ path: path.join(outDir, "saved-360.png"), fullPage: true });
   console.log("✓ Captured saved-360.png");
 
+  // 11. Tablet Viewport Pass (768x1024)
+  const pageTablet = await context.newPage();
+  await pageTablet.setViewportSize({ width: 768, height: 1024 });
+
+  await pageTablet.goto(`${baseUrl}/`, { waitUntil: "networkidle" });
+  await pageTablet.screenshot({ path: path.join(outDir, "home-768.png"), fullPage: true });
+  console.log("✓ Captured home-768.png");
+
+  await pageTablet.goto(`${baseUrl}/plan`, { waitUntil: "networkidle" });
+  await pageTablet.screenshot({ path: path.join(outDir, "plan-768.png"), fullPage: true });
+  console.log("✓ Captured plan-768.png");
+
+  await pageTablet.goto(`${baseUrl}/results`, { waitUntil: "domcontentloaded" });
+  await pageTablet.waitForTimeout(900);
+  await pageTablet.screenshot({ path: path.join(outDir, "results-768.png"), fullPage: false });
+  console.log("✓ Captured results-768.png");
+
+  await pageTablet.goto(areaUrl, { waitUntil: "domcontentloaded" });
+  await pageTablet.waitForTimeout(700);
+  await pageTablet.screenshot({ path: path.join(outDir, "area-768.png"), fullPage: true });
+  console.log("✓ Captured area-768.png");
+
+  await pageTablet.goto(compareUrl, { waitUntil: "domcontentloaded" });
+  await pageTablet.waitForTimeout(700);
+  await pageTablet.screenshot({ path: path.join(outDir, "compare-768.png"), fullPage: true });
+  console.log("✓ Captured compare-768.png");
+
+  await pageTablet.evaluate(() => {
+    window.localStorage.setItem("locus_saved_areas", JSON.stringify(["node/429918282", "relation/19883335", "way/88219472"]));
+  });
+  await pageTablet.goto(savedUrl, { waitUntil: "domcontentloaded" });
+  await pageTablet.waitForTimeout(700);
+  await pageTablet.screenshot({ path: path.join(outDir, "saved-768.png"), fullPage: true });
+  console.log("✓ Captured saved-768.png");
+
+  // 12. Dark Mode Screen Captures (Token Swap Verification)
+  await pageDesktop.evaluate(() => {
+    window.localStorage.setItem("locus_theme", "dark");
+    document.documentElement.setAttribute("data-theme", "dark");
+  });
+  await pageDesktop.waitForTimeout(400);
+  await pageDesktop.screenshot({ path: path.join(outDir, "results-dark-desktop.png"), fullPage: false });
+  console.log("✓ Captured results-dark-desktop.png");
+
+  await pageMobile.evaluate(() => {
+    window.localStorage.setItem("locus_theme", "dark");
+    document.documentElement.setAttribute("data-theme", "dark");
+  });
+  await pageMobile.waitForTimeout(400);
+  await pageMobile.screenshot({ path: path.join(outDir, "results-dark-360.png"), fullPage: false });
+  console.log("✓ Captured results-dark-360.png");
+
   await browser.close();
   console.log("All screenshots captured successfully.");
 }

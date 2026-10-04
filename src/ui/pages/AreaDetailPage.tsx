@@ -7,6 +7,7 @@ import { ProvenanceBadge } from "../primitives/ProvenanceBadge";
 import { Button } from "../primitives/Button";
 import { Card } from "../primitives/Card";
 import { Skeleton } from "../primitives/Skeleton";
+import { LocusMap } from "../components/LocusMap";
 import { formatCommute, formatRentBand, formatCompleteness } from "../utils/format";
 
 export function AreaDetailPage() {
@@ -492,17 +493,19 @@ export function AreaDetailPage() {
         </div>
       </section>
 
-      {/* 8. INTERACTIVE MAP PLACEHOLDER */}
-      <section data-feature="map-placeholder" className="locus-detail__section" style={{ minHeight: "220px", display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-        <div>
-          <span style={{ display: "block", fontSize: "2rem", marginBottom: "8px" }}>🗺</span>
-          <span style={{ fontFamily: "var(--font-serif)", fontSize: "var(--text-base)", fontWeight: 600, display: "block" }}>
-            Interactive Boundary & Routing Map
-          </span>
-          <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-muted)" }}>
-            Centroid: {area.lat.toFixed(4)}, {area.lon.toFixed(4)} ({area.osmType}/{area.id})
-          </span>
-        </div>
+      {/* 8. INTERACTIVE MAP */}
+      <section data-feature="map-placeholder" className="locus-detail__section" style={{ padding: 0, overflow: "hidden" }}>
+        <LocusMap
+          points={[{
+            id: area.id,
+            name: area.name,
+            lat: area.lat,
+            lon: area.lon,
+            rank: 1,
+            matchScore: area.matchScore,
+          }]}
+          height="320px"
+        />
       </section>
 
       {/* 9. PORTAL OUTBOUND LINKS */}

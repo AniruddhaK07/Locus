@@ -141,3 +141,22 @@
 ### DEC-018: Sticky Metric Column and Responsive Matrix Comparison
 - **Context:** Comparing multiple candidate localities side-by-side on mobile viewports (e.g., 360px) typically results in either unreadable squished columns or loss of context when scrolling horizontally.
 - **Decision:** Compare matrix uses CSS sticky positioning (`position: sticky; left: 0; background: var(--surface); z-index: 2; border-right: 1px solid var(--line-strong)`) on the metric label column (`th:first-child`, `td:first-child`). On narrow screens, metric titles stay permanently pinned in view while the user swipes smoothly across candidate columns. Best-in-category cells are highlighted with subtle editorial tinting and explicit `[✓ Best]` text badges rather than color-only signifiers.
+
+---
+
+### DEC-019: Token-Swap Dark Mode via CSS Custom Properties and User Toggle
+- **Context:** §9 / Phase U5 permits dark mode as a token swap if time allows. Users inspecting the UI in low-light environments require high-contrast readability without breaking typography or layout.
+- **Decision:** Implemented pure token swap in `tokens.css` mapping `--bg: #1F1D20` and `--ink: #FFF3EB` with full WCAG 2.2 AA and AAA compliance (all text ratios $\ge 7:1$). Added `@media (prefers-color-scheme: dark)` automatic detection alongside manual user toggle button in the header (`document.documentElement.setAttribute("data-theme", theme)`) persisted via `localStorage`.
+
+---
+
+### DEC-020: Self-Contained SVG Cartographic Map with Real Geographic Projections
+- **Context:** Third-party raster map libraries (like Leaflet) require external CDN tiles or API keys which fail during offline presentations or hackathon environments, and add ~40 kB gzip to the bundle budget.
+- **Decision:** Implemented `LocusMap.tsx` using responsive SVG cartography. Computes exact bounding box from candidate `lat/lon` coordinates with 15% margin padding, rendering workplace diamond pins, candidate rank pills, and connection lines with interactive tooltips and mandatory OpenStreetMap attribution (*"Map data © OpenStreetMap contributors under ODbL"*). Zero API keys, 100% offline resilient, zero external scripts.
+
+---
+
+### DEC-021: Complete Elimination of Legacy Skeleton Stylesheet
+- **Context:** Human review condition 1 mandated: *"Keep skeleton.css scoped so the not-yet-migrated screens still function; delete it as each screen is migrated, and make sure it's fully gone by U6."*
+- **Decision:** With all 7 user-facing screens and dev tools migrated to scoped token-based stylesheets (`dev.css`, `shell.css`, `results.css`, etc.), `src/ui/skeleton.css` was permanently deleted via `git rm`. Zero legacy monospace styles or un-tokenized CSS rules remain in the repository.
+
