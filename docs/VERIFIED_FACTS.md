@@ -394,5 +394,14 @@ Tested gentle POST query and status probes against `https://lz4.overpass-api.de/
 - **Relay Implications:**
   - While 300s provides ample headroom for individual 4-locality Overpass batches (3–8s), all Vercel serverless requests share datacenter egress IP pools, making Overpass rate-limiting (HTTP 429) the primary architectural constraint for a relay.
 
+### 12.6 Render Static Site SPA Routing Reality (2026-10-04)
+- **Observed Behavior:** Render Static Sites do **NOT** automatically honor or parse `public/_redirects` (or `_redirects` in build output). A direct page reload or deep-link navigation on `/results` returned HTTP 404 `"Not Found"`.
+- **Verified Fix:** In the Render dashboard under **Redirects/Rewrites**, an explicit Rewrite rule must be configured:
+  - **Source:** `/*`
+  - **Destination:** `/index.html`
+  - **Action:** `Rewrite`
+- **Rule:** Never assume a static host honors file-based redirect conventions (`_redirects`) without live verification of direct deep link reloads.
+
+
 
 

@@ -72,6 +72,27 @@ Users specify a city, a workplace, up to 3 regular destinations, a budget range,
 
 ---
 
+## Deploying
+
+### Render (Static Site)
+- **Build Command:** `npm run build`
+- **Publish Directory:** `dist`
+- **Required Dashboard Step (SPA Routing):** Render Static Sites do **not** automatically parse `public/_redirects`. Direct navigation or page reloads on deep links (such as `/results`, `/plan`, or `/area/:id`) return HTTP 404 "Not Found" unless an explicit rewrite rule is added in the Render dashboard:
+  1. Open your Static Site service in the Render Dashboard.
+  2. Navigate to **Settings** &rarr; **Redirects/Rewrites**.
+  3. Add the following rule:
+     - **Source:** `/*`
+     - **Destination:** `/index.html`
+     - **Action:** `Rewrite`
+- **Live Mode Compatibility:** Render domains (`*.onrender.com`) have been verified live to receive HTTP 200 OK from public Overpass API mirrors (no 406 Origin/Referer block).
+
+### Vercel
+- Configured via [`vercel.json`](vercel.json) (`/(.*)` &rarr; `/index.html`).
+- **Snapshot & Mock Modes:** Fully functional out of the box.
+- **Live Mode Limitation:** Public Overpass API mirrors block default `*.vercel.app` domains with HTTP 406 Not Acceptable (verified live; see [`docs/VERIFIED_FACTS.md`](docs/VERIFIED_FACTS.md#12-overpass-api-originreferer-rejection-investigation-2026-10-04)). Live queries on Vercel require configuring a custom domain.
+
+---
+
 ## UI Presentation Layer
 
 The Locus presentation layer (`src/ui/`) is a minimalist, magazine-editorial interface adhering to strict honesty rules:
