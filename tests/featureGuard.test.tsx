@@ -268,4 +268,12 @@ describe("UI Contract Feature ID Guard (check:features)", () => {
     expect(html).toContain('data-feature="mode-banner"');
     expect(html).toContain('data-feature="provenance-badge"');
   });
+
+  it("verifies Brand Features in Header and Footer (brand-logo, team-badge)", () => {
+    const headerSrc = readComponentSource("Header.tsx");
+    assertFeaturesInSource(headerSrc, ["brand-logo", "nav-home", "theme-toggle"], "Header Brand");
+
+    const footerSrc = readComponentSource("Footer.tsx");
+    assertFeaturesInSource(footerSrc, ["team-badge"], "Footer Team");
+  });
 });

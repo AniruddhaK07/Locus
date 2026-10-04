@@ -51,6 +51,11 @@ export function Header() {
       <div className="locus-header__bar">
         <div className="locus-header__brand">
           <Link to="/" data-feature="nav-home" className="locus-header__logo" aria-label="Locus Home">
+            <span
+              data-feature="brand-logo"
+              className="locus-header__mark"
+              aria-hidden="true"
+            />
             <span className="locus-header__wordmark">Locus</span>
           </Link>
         </div>

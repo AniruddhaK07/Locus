@@ -9,6 +9,7 @@
 | **DEC-003** | Environment variable management & safety policy handling | 2026-10-04 | Accepted |
 | **DEC-004** | Direct-from-browser architecture (Zero server relay needed) | 2026-10-04 | Accepted |
 | **DEC-005** | Multi-modal routing via `routing.openstreetmap.de` (car, bike, foot) | 2026-10-04 | Accepted |
+| **DEC-022** | Brand Asset Derivatives & `sharp` DevDependency | 2026-10-05 | Accepted |
 
 ---
 
@@ -159,4 +160,16 @@
 ### DEC-021: Complete Elimination of Legacy Skeleton Stylesheet
 - **Context:** Human review condition 1 mandated: *"Keep skeleton.css scoped so the not-yet-migrated screens still function; delete it as each screen is migrated, and make sure it's fully gone by U6."*
 - **Decision:** With all 7 user-facing screens and dev tools migrated to scoped token-based stylesheets (`dev.css`, `shell.css`, `results.css`, etc.), `src/ui/skeleton.css` was permanently deleted via `git rm`. Zero legacy monospace styles or un-tokenized CSS rules remain in the repository.
+
+---
+
+### DEC-022: Brand Asset Derivatives & `sharp` DevDependency
+- **Context:** Integration of official Locus brand mark and Meridian team badge. The original uncompressed source assets (`imglgo.png` at 377 kB and `ud.png` at 5.1 MB) exceed performance budgets if shipped in the client bundle.
+- **Decision:**
+  1. Installed `sharp` as a development-only dependency (`devDependencies`) for reproducible offline asset processing via `scripts/prepare-brand.ts`.
+  2. Verified `imglgo.png` alpha channel: the background is already transparent (0 opaque white pixels). Scaled and trimmed to a 256×256 square (`locus-mark.png`, 20 kB) with 3% padding to preserve spike tips.
+  3. Rendered the header brand mark using pure CSS mask (`-webkit-mask` / `mask`) with `background-color: var(--ink)` so it follows light/dark themes without SVG filters or duplicate assets.
+  4. Resized `ud.png` into 2× display width derivatives: WebP (`meridian-badge.webp`, 19.5 kB) and PNG fallback (`meridian-badge.png`, 154 kB). The 5.1 MB original is preserved in `src/ui/assets/brand/` but unreferenced by bundle code, ensuring it is omitted from `dist/assets/`.
+  5. Placed team badge below a hairline divider in the footer, using `mix-blend-mode: multiply` on light cream surfaces and dimming (`opacity: 0.72`, `brightness: 0.85`) on dark surfaces.
+
 

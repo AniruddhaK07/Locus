@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
 import { isDevMode } from "../utils/dev";
+import meridianWebp from "../assets/brand/meridian-badge.webp";
+import meridianPng from "../assets/brand/meridian-badge.png";
 
 export function Footer() {
   const showDev = isDevMode();
@@ -12,7 +14,7 @@ export function Footer() {
             Locus · Transparent neighbourhood intelligence for relocating in India. OpenStreetMap &amp; open routing models.
           </p>
           <p className="locus-footer__sub">
-            $0 public infrastructure · Zero proprietary tracking · Calibrated open data
+            $0 public infrastructure · Zero proprietary tracking · Open data, labelled estimates
           </p>
         </div>
 
@@ -29,6 +31,23 @@ export function Footer() {
             </Link>
           )}
         </nav>
+      </div>
+
+      <div className="locus-footer__team">
+        <div className="locus-footer__team-badge" data-feature="team-badge">
+          <picture>
+            <source type="image/webp" srcSet={meridianWebp} />
+            <img
+              src={meridianPng}
+              alt="Meridian"
+              width={160}
+              height={85}
+              loading="lazy"
+              className="locus-footer__team-img"
+            />
+          </picture>
+          <span className="locus-footer__team-caption">Built by Meridian</span>
+        </div>
       </div>
     </footer>
   );

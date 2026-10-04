@@ -140,3 +140,27 @@ Locus is audited and visually verified across 3 core viewport widths:
 - Reduced-motion mode tested and automated via `@media (prefers-reduced-motion: reduce)`.
 
 - Zero external font CDN requests: all fonts self-hosted in-bundle via npm `@fontsource/*`.
+
+---
+
+## 8. Brand Asset Rules
+
+1. **Brand Mark (`data-feature="brand-logo"`):**
+   - Source artwork: `src/ui/assets/brand/imglgo.png` (black compass star ring on transparent alpha background).
+   - Derivative: `src/ui/assets/brand/locus-mark.png` (trimmed square with 3% margin, 256×256px, ~20 kB).
+   - Rendering method: Pure CSS mask (`-webkit-mask` and `mask`) with `background-color: var(--ink)` and `mask-size: contain`.
+   - Theme adaptation: Follows `--ink` automatically across light mode (`#2C2A2E`) and dark mode (`#FFF3EB`) without SVG filters or recolored bitmap duplicates.
+   - Sizing: Scaled to match wordmark cap height (28px desktop, 26px on mobile viewports ≤ 640px) to prevent layout shift or visual crowding.
+   - Accessibility: Strictly decorative (`aria-hidden="true"`). The enclosing link maintains its accessible name (`aria-label="Locus Home"`).
+
+2. **Team Badge (`data-feature="team-badge"`):**
+   - Source artwork: `src/ui/assets/brand/ud.png` (antique engraving with burgundy "MERIDIAN" typography, 2048×1092, 5.1 MB).
+   - Optimization: Never bundle the 5.1 MB source asset into client production builds. A web-sized derivative is processed at 2× display width (340×181px) into modern WebP (`meridian-badge.webp`, 19.5 kB) with PNG fallback (`meridian-badge.png`, 154 kB).
+   - Layout: Placed at the bottom of the footer below a hairline border, accompanied by a small muted caption *"Built by Meridian"*.
+   - Responsive dimensions: Display width 160px on desktop, 140px on mobile (`max-width: 640px`), with explicit `width` and `height` attributes and `loading="lazy"` to prevent cumulative layout shift (CLS).
+   - Theme blending:
+     - **Light Mode:** Uses `mix-blend-mode: multiply` to seamlessly blend the antique paper tint into the cream surface (`--surface: #FFF9F4`) with zero visible rectangular bounding edge.
+     - **Dark Mode:** Disables multiply blending to preserve line contrast and text visibility against the dark surface (`--surface: #272528`). Dims the image with `opacity: 0.72`, `filter: brightness(0.85) contrast(1.05)`, and rounded corners (`--radius-sm`) to eliminate bright white glare while maintaining antique engraving character.
+
+3. **Favicon & Touch Icons:**
+   - 32×32 PNG favicon (`public/favicon.png`) and 180×180 Apple touch icon (`public/apple-touch-icon.png`) derived directly from `locus-mark.png`.

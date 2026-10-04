@@ -44,6 +44,59 @@
   text-decoration: none;
   display: inline-flex;
   align-items: center;
+  gap: var(--space-2);
+}
+
+.locus-header__mark {
+  display: inline-block;
+  width: 28px;
+  height: 28px;
+  background-color: var(--ink);
+  -webkit-mask-image: url("../assets/brand/locus-mark.png");
+  mask-image: url("../assets/brand/locus-mark.png");
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .locus-header__bar {
+    padding: 0 var(--space-2);
+    gap: var(--space-2);
+  }
+
+  .locus-header__logo {
+    gap: 6px;
+  }
+
+  .locus-header__mark {
+    width: 26px;
+    height: 26px;
+  }
+
+  .locus-header__wordmark {
+    font-size: var(--text-lg);
+  }
+
+  .locus-header__nav {
+    gap: 2px;
+  }
+
+  .locus-header__link {
+    padding: 6px 5px;
+    font-size: 12px;
+    white-space: nowrap;
+    min-height: 36px;
+  }
+
+  .locus-header__theme-btn {
+    width: 30px;
+    height: 30px;
+  }
 }
 
 .locus-header__wordmark {
@@ -58,6 +111,13 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.locus-header__nav::-webkit-scrollbar {
+  display: none;
 }
 
 .locus-header__link {
@@ -214,4 +274,55 @@
 
 .locus-footer__link--dev {
   font-family: var(--font-mono);
+}
+
+.locus-footer__team {
+  max-width: var(--max-width);
+  margin: var(--space-6) auto 0;
+  padding-top: var(--space-5);
+  border-top: var(--border-hairline);
+}
+
+.locus-footer__team-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.locus-footer__team-img {
+  display: block;
+  width: 160px;
+  height: auto;
+  aspect-ratio: 340 / 181;
+  mix-blend-mode: multiply;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+@media (max-width: 640px) {
+  .locus-footer__team-img {
+    width: 140px;
+  }
+}
+
+.locus-footer__team-caption {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  letter-spacing: 0.02em;
+}
+
+[data-theme="dark"] .locus-footer__team-img {
+  mix-blend-mode: normal;
+  opacity: 0.72;
+  filter: brightness(0.85) contrast(1.05);
+  border-radius: var(--radius-sm);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .locus-footer__team-img {
+    mix-blend-mode: normal;
+    opacity: 0.72;
+    filter: brightness(0.85) contrast(1.05);
+    border-radius: var(--radius-sm);
+  }
 }

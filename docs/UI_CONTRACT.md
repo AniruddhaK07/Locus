@@ -54,6 +54,12 @@ Dev route **`/_map`** lists every route, all 65+ feature IDs, and links to activ
 
 ## 3. Screen Specifications & Controls
 
+### Global Shell & Brand Elements
+- **Brand Logo:** `data-feature="brand-logo"` — Decorative CSS-masked compass star mark rendered left of the "Locus" wordmark in Header (`aria-hidden="true"`). Follows `--ink` across light and dark themes without SVG filters or layout shift.
+- **Home Navigation Link:** `data-feature="nav-home"` — Clickable brand link surrounding `brand-logo` and "Locus" wordmark, keeping accessible name "Locus Home".
+- **Team Badge:** `data-feature="team-badge"` — "Built by Meridian" footer container below hairline divider, featuring responsive web-sized derivative (WebP + PNG fallback) and muted caption.
+- **Theme Toggle:** `data-feature="theme-toggle"` — Header light/dark mode switch button.
+
 ### Screen 1: Home (`/`)
 - **Route:** `/`
 - **Purpose:** Brand introduction, value statement, search entry point, and search resumption.
