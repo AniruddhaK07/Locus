@@ -5,8 +5,9 @@
  * All types, methods, and engine instances must be consumed through this module.
  */
 
-import type { Engine, EngineOptions } from "./domain/types";
+import type { Engine, EngineOptions, MockScenario } from "./domain/types";
 import { MockEngine } from "./mock/mockEngine";
+import { LiveEngine } from "./live/liveEngine";
 
 export * from "./domain/types";
 export * from "./domain/selection";
@@ -16,32 +17,37 @@ export * from "./scoring/household";
 export * from "./scoring/matchScore";
 export * from "./scoring/explanations";
 export * from "./providers/rent";
+export * from "./pipeline/searchPipeline";
+export * from "./live/liveEngine";
 
 export const ENGINE_NAME = "Locus Engine";
 export const ENGINE_VERSION = "0.1.0";
 
+export type CompatibleEngine = Engine & {
+  getScenario(): MockScenario;
+  setScenario(s: MockScenario): void;
+};
+
 /**
  * Creates an instance of the Locus Engine.
  *
- * In Phase 1 skeleton mode, creates a MockEngine supporting scenarios:
- * 'normal', 'slow', 'partial', 'empty', 'error', 'sparse-data'.
+ * Supports mode: "mock" (using MockEngine) or "live" (using LiveEngine).
  */
-export function createEngine(opts: EngineOptions = { mode: "mock" }): Engine {
-  if (opts.mode === "mock") {
-    return new MockEngine(opts);
+export function createEngine(opts: EngineOptions = { mode: "mock" }): CompatibleEngine {
+  if (opts.mode === "live") {
+    return new LiveEngine(opts);
   }
-  // In Phase 1, fallback to MockEngine for skeleton testing
   return new MockEngine(opts);
 }
 
 // Global default engine instance for UI convenience
-let defaultEngine: MockEngine | null = null;
+let defaultEngine: CompatibleEngine | null = null;
 
-export function getEngine(opts?: EngineOptions): MockEngine {
+export function getEngine(opts?: EngineOptions): CompatibleEngine {
   if (!defaultEngine) {
     const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env;
-    const mode = metaEnv?.VITE_ENGINE_MODE === "live" ? "live" : "mock";
-    defaultEngine = new MockEngine({ mode, ...opts });
+    const mode = opts?.mode ?? (metaEnv?.VITE_ENGINE_MODE === "live" ? "live" : "mock");
+    defaultEngine = createEngine({ mode, ...opts });
   }
   return defaultEngine;
 }

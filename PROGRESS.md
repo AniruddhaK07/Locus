@@ -2,30 +2,29 @@
 
 ## Resume here
 
-- **Current Phase:** Phase 6 complete — starting Phase 7 (Pipeline orchestration, live wiring, persistence).
-- **Done in Phase 6:**
-  - Implemented continuous, monotone budget utility function `computeBudgetUtility` with strict property tests (continuity at $R_{\min}, R_t, R_{\max}$, monotonicity for $R > R_t$, and $U \in [0, 1]$).
-  - Implemented `RentProvider` with `CityTierBand` heuristic estimate scaled by candidate centrality rank + `UserOverride` precedence.
-  - Implemented `computeSafetyIndicator` evaluating physical OSM infrastructure tags (police, lit ways, surveillance) with thin coverage check and mandatory caveat `"infrastructure indicator, not crime data"`.
-  - Implemented `computeHouseholdFit` evaluating deterministic persona blends (family, couple, student, balanced) without hardcoded ratings.
-  - Implemented `scoreArea` multi-criteria scoring combining 6 criteria, confidence factoring ($W_{eff} = W_{base} \times C$), renormalization over non-null inputs ($S_{eff} > 0$), and `dataCompleteness` calculation.
-  - Implemented `generateExplanations` producing template-based plain English summaries and exactly 3 `keyFacts` without LLM calls.
-  - Added unit test suite `tests/scoring.test.ts` (27 tests) verifying budget properties, sparse data renormalization, zero vs null distinction, and a static AST/regex guard prohibiting `||` default substitutions on measured values.
-  - Verified `npm run check` passes 100% (90 unit tests across 8 test suites).
-- **In progress:** Phase 7 — Pipeline orchestration, live wiring, persistence.
-- **Phase 7 Plan (5–10 lines):**
-  1. Implement `SearchPipeline` orchestrating progressive stages (`resolving-city` $\rightarrow$ `discovering-localities` $\rightarrow$ `routing` $\rightarrow$ `profiling-amenities` $\rightarrow$ `scoring` $\rightarrow$ `done`).
-  2. Implement progressive state emissions via `SearchHandle` emitting updates after each locality batch so UI displays cards immediately.
-  3. Wire cancellation mechanics with `AbortController` and infra queue task purging on abort.
-  4. Implement `LiveEngine` implementing the public `Engine` interface using real providers, caching in IndexedDB.
-  5. Implement `prefsToQuery` and `queryToPrefs` for shareable URL query serialization and deep-linking.
-  6. Support direct locality detail retrieval by stable id `"{type}/{id}"` from cache or on-demand fetch.
-  7. Toggle engine mode via `VITE_ENGINE_MODE=live` without modifying UI presentation code.
-  8. Write pipeline unit tests in `tests/pipeline.test.ts` asserting progressive states, failure isolation, and abort handling; verify with `npm run smoke`.
+- **Current Phase:** Phase 7 complete — starting Phase 8 (Compare, saved, portal links).
+- **Done in Phase 7:**
+  - Implemented `SearchPipeline` (`src/engine/pipeline/searchPipeline.ts`) orchestrating all 6 progressive stages (`resolving-city` $\rightarrow$ `discovering-localities` $\rightarrow$ `routing` $\rightarrow$ `profiling-amenities` $\rightarrow$ `scoring` $\rightarrow$ `done`).
+  - Implemented progressive state updates emitting progress and locality batches to subscribers without UI flicker.
+  - Implemented per-locality failure isolation: amenity or routing failure for a single candidate records in `localityErrors` and produces `null` metrics with lowered completeness, allowing the pipeline to finish cleanly.
+  - Implemented `LiveEngine` (`src/engine/live/liveEngine.ts`) backing the full `Engine` interface with real network providers and rate-limiting queues.
+  - Implemented persistent storage and re-hydration via `StorageAdapter` / IndexedDB (`locus_area_{id}`) for instant direct-link loading.
+  - Implemented `setRentOverride` with dynamic score re-computation and cache re-persistence.
+  - Implemented lossless round-trip preference serialization via `prefsToQuery` and `queryToPrefs`.
+  - Added unit test suite `tests/pipeline.test.ts` (11 tests) asserting progressive stages, failure isolation, abort handling, URL serialization, and persistence.
+  - Ran live smoke test on Pune executing the full pipeline against real Overpass, Nominatim, and OSRM endpoints (12 localities ranked in 131s, Narayan Peth #1, Sadashiv Peth #2, Deccan Gymkhana #3).
+  - Verified `npm run check` passes 100% (101 unit tests across 9 test suites).
+- **In progress:** Phase 8 — Compare, saved, portal links.
+- **Phase 8 Plan (5–10 lines):**
+  1. Audit `compare()` implementation for multi-area side-by-side metric rows, per-metric winner determination, and formatted values.
+  2. Implement robust `saved` store with persistent storage and cross-tab synchronisation (`StorageEvent`).
+  3. Validate and refine portal link builders (`portals(area)`) with city-applicability rules and universal search engine fallback.
+  4. Write comprehensive unit tests in `tests/features.test.ts` asserting compare winner logic, saved toggle subscriptions, and portal URL generation.
+  5. Run `npm run check`, commit `phase(7): Pipeline orchestration, live wiring, persistence`, tag `phase-7`, and push.
 - **How to check:**
   ```bash
   npm run check
-  npm run smoke
+  npm run smoke -- --city "Pune"
   ```
 - **Known gaps:**
   - Multi-modal routing uses `routing.openstreetmap.de` (car, bike, foot verified; demo host `router.project-osrm.org` only supports driving).
@@ -46,6 +45,7 @@
 - **Phase 4 Completed:** `2026-10-04T12:46:00+05:30`
 - **Phase 5 Completed:** `2026-10-04T12:55:00+05:30`
 - **Phase 6 Completed:** `2026-10-04T13:10:00+05:30`
+- **Phase 7 Completed:** `2026-10-04T13:28:00+05:30`
 - **Repository:** `https://github.com/AniruddhaK07/Locus.git`
 
 ---
@@ -61,7 +61,7 @@
 | **4** | Amenity profile | 2 h | **DONE** | 2026-10-04T12:46:00+05:30 |
 | **5** | Commute engine | 3 h | **DONE** | 2026-10-04T12:55:00+05:30 |
 | **6** | Scoring engine and explanations | 2.5 h | **DONE** | 2026-10-04T13:10:00+05:30 |
-| **7** | Pipeline orchestration, live wiring, persistence | 3 h | Pending | — |
+| **7** | Pipeline orchestration, live wiring, persistence | 3 h | **DONE** | 2026-10-04T13:28:00+05:30 |
 | **8** | Compare, saved, portal links | 1.5 h | Pending | — |
 | **9** | Hardening, demo resilience, deploy, final docs | 3 h | Pending | — |
 
@@ -140,3 +140,17 @@
    - Safety indicator: Derived purely from physical OSM tags (police, lit ways, surveillance); labels `"infrastructure indicator, not crime data"`; yields `null` when zero tags are mapped.
    - Zero-fabrication AST/regex guard: Static code test scans all scoring files to ensure no `.value || <default>` pattern exists.
    - Template explanations: Generates honest summary statements and exactly 3 `keyFacts` covering commute, lifestyle/fit, and rent/caveats with zero LLM calls.
+
+---
+
+## Phase 7 Verification & Acceptance Results
+
+1. **Commands Executed:**
+   - `npm run check` $\rightarrow$ Passed (0 TS errors, 0 ESLint errors/warnings, 101 unit tests passed across 9 test suites in 2.0s).
+   - `npm run smoke -- --city "Pune"` $\rightarrow$ Passed end-to-end live pipeline verification across all 6 stages.
+2. **Acceptance Criteria Verification:**
+   - Unchanged skeleton UI works end-to-end in live mode: Switched seamlessly via `VITE_ENGINE_MODE=live` without changing any UI presentation code.
+   - Reload on `/results` and `/area/:id` re-hydrates: `LiveEngine.getArea(id)` re-hydrates cached `AreaDetail` from `StorageAdapter` / IndexedDB.
+   - Cancellation and restarts: Verified `searchHandle.cancel()` and starting a new search cleanly aborts previous in-flight requests and leaves no stale updates.
+   - Per-locality failure isolation: Simulated locality timeout in `tests/pipeline.test.ts` verified that failed localities receive `null` metrics with lowered completeness while the other localities complete normally.
+   - Live smoke test on Pune: Overpass discovered 138 candidates, OSRM routed matrix in 1.7s, Overpass profiled 12 candidates through 750ms rate limiter in 131s, scoring and ranking top 3 (#1 Narayan Peth 91%, #2 Sadashiv Peth 89%, #3 Deccan Gymkhana 89%) with 100% completeness.

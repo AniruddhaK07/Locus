@@ -220,3 +220,30 @@ All entries in this register were established via real network probes executed f
 
 
 
+
+---
+
+## 9. Phase 7 Live Pipeline & Engine Verification
+
+- **Verification Date:** 2026-10-04
+- **Verification Suites:** `tests/pipeline.test.ts` & `npm run smoke -- --city "Pune"`
+- **Pipeline Implementation:** `SearchPipeline` (`src/engine/pipeline/searchPipeline.ts`) and `LiveEngine` (`src/engine/live/liveEngine.ts`).
+
+### 9.1 Live End-to-End Smoke Test Output (Pune)
+- **City Resolution:** Resolved `Pune` to OSM node `16174445` in **1,168 ms**, falling back to exact geocoder bounding box `[18.3614, 18.6814, 73.6945, 74.0145]` with zero padding.
+- **Locality Discovery:** Overpass discovered **138 candidate localities** in **21,389 ms**; ranked by anchor proximity down to top 12.
+- **Multi-Modal Commute:** OSRM batch routing routed all 12 localities in **1,743 ms** with alpha = 1.6 corridor calibration.
+- **Amenity & Safety Profiling:** Profiled all 12 candidate localities live over Overpass API through rate-limiting queue (concurrency 1, spacing $\ge 750$ ms).
+- **Multi-Criteria Scoring & Ranking:**
+  - Total pipeline runtime: **131,579 ms** (~2.1 min) across 12 Overpass amenity queries.
+  - Final Stage: `done` (12 localities ranked).
+  - **#1 Narayan Peth:** Match: **91%**, Completeness: **100%**, Commute: **2m** peak. Facts: *2m peak car to Workplace · Strong family persona fit (7.9/10) · ₹40k–52k/mo (tier band estimate)*.
+  - **#2 Sadashiv Peth:** Match: **89%**, Completeness: **100%**, Commute: **4m** peak. Facts: *4m peak car to Workplace · Strong family persona fit (7.7/10) · ₹32k–44k/mo (tier band estimate)*.
+  - **#3 Deccan Gymkhana:** Match: **89%**, Completeness: **100%**, Commute: **4m** peak. Facts: *4m peak car to Workplace · Strong family persona fit (8.7/10) · ₹29k–41k/mo (tier band estimate)*.
+
+### 9.2 Acceptance Findings
+- Progressive state emissions: UI/subscribers receive stage updates (`resolving-city` $\rightarrow$ `discovering-localities` $\rightarrow$ `routing` $\rightarrow$ `profiling-amenities` (1..12) $\rightarrow$ `scoring` $\rightarrow$ `done`).
+- Failure isolation: Per-locality query failure sets `null` metrics with reason and lowered `dataCompleteness` without halting pipeline.
+- Abort handling: Cancelling a search cleanly aborts in-flight network requests and prevents stale updates.
+- Re-hydration: `LiveEngine.getArea(id)` re-hydrates persisted `AreaDetail` records from `StorageAdapter` / IndexedDB.
+- URL sharing: Preferences encode to query string and decode back to identical Preferences object.

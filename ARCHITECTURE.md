@@ -268,3 +268,27 @@ The search pipeline executes progressively through 6 stages:
 
 
 
+
+---
+
+## 10. Pipeline Orchestration & Live Engine Architecture (`src/engine/pipeline/` & `src/engine/live/`)
+
+1. **SearchPipeline (`searchPipeline.ts`):**
+   - Coordinates 6 progressive stages:
+     1. `resolving-city`: Resolves city to administrative relation or exact bounding box with zero padding.
+     2. `discovering-localities`: Queries Overpass `nwr` place tags, dedups, ranks by anchor distance, keeps top 12.
+     3. `routing`: Batches multi-modal matrix routing via OSRM `/table` endpoint with alpha congestion calibration.
+     4. `profiling-amenities`: Queries real amenity & safety tag counts per candidate with polite spacing (750ms).
+     5. `scoring`: Relative normalization, continuous budget utility, safety indicator, and household persona fit.
+     6. `done`: Produces ranked results with honest provenance and plain-English explanations.
+   - Progressive state emissions: Emits progress updates after each locality batch so UI displays cards immediately.
+   - Failure isolation: Per-locality failure records error in `localityErrors[id]` and emits `null` metrics with lowered completeness, never aborting the pipeline for other localities.
+   - Abort handling: Caller `AbortSignal` immediately cancels pending queue tasks and active HTTP requests without unhandled errors.
+
+2. **LiveEngine (`liveEngine.ts`):**
+   - Complete implementation of the public `Engine` interface.
+   - Shared queues enforce provider rate limits: Overpass (concurrency 1, spacing $\ge 750$ ms), OSRM (concurrency 2, spacing $\ge 200$ ms).
+   - Storage & Re-hydration: Persists computed `AreaDetail` objects to `StorageAdapter` (`locus_area_{id}`) for instant direct-link re-hydration on `/area/:id`.
+   - Dynamic Rent Override: `setRentOverride(id, rent)` applies user-entered rent, recalculates scores, and persists changes.
+   - State Persistence & Sharing: `prefsToQuery` and `queryToPrefs` provide lossless round-trip serialization of preferences to URL query parameters.
+   - Single-flag Mode Switch: Switched via `VITE_ENGINE_MODE=live` with zero changes to presentation UI components.

@@ -12,12 +12,14 @@
 
 import { HttpClient } from "../src/engine/infra/httpClient";
 import { ResponseCache } from "../src/engine/infra/cache";
-import { MemoryStorageAdapter } from "../src/engine/infra/storage";
+import { MemoryStorageAdapter, type StorageAdapter } from "../src/engine/infra/storage";
 import { NominatimGeocodingProvider } from "../src/engine/providers/geocoding/nominatim";
 import { PhotonGeocodingProvider } from "../src/engine/providers/geocoding/photon";
 import { OverpassLocalityProvider } from "../src/engine/providers/localities/overpass";
 import { OverpassAmenityProvider } from "../src/engine/providers/amenities/overpass";
 import { OsrmRoutingProvider } from "../src/engine/providers/routing/osrm";
+import { LiveEngine } from "../src/engine/live/liveEngine";
+import type { Preferences, SearchState } from "../src/engine/domain/types";
 
 // Parse CLI flags
 function getArg(flag: string): string | undefined {
@@ -34,7 +36,8 @@ async function runSmokeForCity(
   photon: PhotonGeocodingProvider,
   overpass: OverpassLocalityProvider,
   amenityProvider: OverpassAmenityProvider,
-  routingProvider: OsrmRoutingProvider
+  routingProvider: OsrmRoutingProvider,
+  storage: StorageAdapter
 ) {
   console.log(`\n======================================================`);
   console.log(`  Live Smoke Test: ${cityInput}`);
@@ -140,12 +143,62 @@ async function runSmokeForCity(
   console.log(`    Status: ${transitCheck[0].commutes[0].freeFlowMin.value === null ? "DISABLED/UNVERIFIED (null)" : "UNEXPECTED"}`);
   console.log(`    Note:   ${transitCheck[0].commutes[0].freeFlowMin.note}`);
 
+  // Step 6: End-to-End LiveEngine Search & Ranking Verification
+  console.log(`\n[6/6] Executing End-to-End LiveEngine search pipeline for "${cityInput}"...`);
+  const liveEngine = new LiveEngine({
+    mode: "live",
+    storage
+  });
+
+  const prefs: Preferences = {
+    city: cityInput,
+    workplace: { id: "wp", label: "Workplace", name: `${resolution.name} Center`, lat: anchor.lat, lon: anchor.lon },
+    destinations: [],
+    transportMode: "car",
+    maxCommuteMin: 45,
+    budgetMin: 20000,
+    budgetMax: 50000,
+    householdType: "family",
+    priorityFocus: "commute"
+  };
+
+  const t5 = performance.now();
+  const searchHandle = liveEngine.startSearch(prefs);
+
+  const finalState = await new Promise<SearchState>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error("LiveEngine search timed out after 180s")), 180000);
+    searchHandle.subscribe((state) => {
+      if (state.stage === "profiling-amenities" || state.stage === "scoring") {
+        process.stdout.write(`\r  Progress: ${state.progress}% | ${state.statusMessage.padEnd(60, " ")}`);
+      }
+      if (state.isComplete) {
+        clearTimeout(timeout);
+        process.stdout.write("\n");
+        resolve(state);
+      }
+    });
+  });
+
+  const tSearch = Math.round(performance.now() - t5);
+  console.log(`  LiveEngine search completed in ${tSearch}ms:`);
+  console.log(`    Stage:       ${finalState.stage}`);
+  console.log(`    Total Areas: ${finalState.areas.length}`);
+
+  if (finalState.areas.length > 0) {
+    console.log(`\n  Top 3 Ranked Results:`);
+    finalState.areas.slice(0, 3).forEach((a) => {
+      console.log(`    #${a.rank} ${a.name.padEnd(20, " ")} | Match: ${a.matchScore}% | Completeness: ${Math.round(a.dataCompleteness * 100)}% | Commute: ${a.effectiveCommuteMin.value ?? "N/A"}m`);
+      console.log(`       Facts: ${a.keyFacts.join(" · ")}`);
+    });
+  }
+
   return {
     city: resolution.name,
     candidates: localityResult.totalCandidates,
     selected: localityResult.localities.length,
     topLocalityAmenities: profile.totalMappedObjects,
-    timings: { photonMs: tPhoton, nominatimMs: tNom, overpassMs: tOverpass, amenityMs: tProfile, commuteMs: tCommute }
+    liveEngineAreas: finalState.areas.length,
+    timings: { photonMs: tPhoton, nominatimMs: tNom, overpassMs: tOverpass, amenityMs: tProfile, commuteMs: tCommute, fullSearchMs: tSearch }
   };
 }
 
@@ -169,7 +222,7 @@ async function main() {
   const results = [];
   for (const city of testCities) {
     try {
-      const res = await runSmokeForCity(city, nominatim, photon, overpass, amenityProvider, routingProvider);
+      const res = await runSmokeForCity(city, nominatim, photon, overpass, amenityProvider, routingProvider, storage);
       results.push({ status: "PASSED", ...res });
     } catch (err: unknown) {
       console.error(`  ERROR on ${city}:`, (err as Error).message);
