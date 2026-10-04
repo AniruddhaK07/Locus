@@ -75,24 +75,35 @@ Users specify a city, a workplace, up to 3 regular destinations, a budget range,
 ## UI Presentation Layer
 
 The Locus presentation layer (`src/ui/`) is a minimalist, magazine-editorial interface adhering to strict honesty rules:
-- **Design Tokens:** All visual values are defined in `src/ui/styles/tokens.css` with WCAG 2.2 AA contrast compliance.
-- **Typography:** Self-hosted `Fraunces` (serif) and `Inter` (sans) via `@fontsource/*` with zero external runtime CDN dependencies.
+- **Design Philosophy:** Warm, confident editorial design (Fraunces serif headings, Inter sans UI text). Closer to an architectural magazine than a generic dashboard.
+- **Design Tokens:** All visual values are defined strictly in `src/ui/styles/tokens.css` with zero hex literals elsewhere and full WCAG 2.2 AA and AAA compliance.
+- **Dark Mode Support:** Built-in espresso-charcoal dark mode (`--bg: #1F1D20`, `--ink: #FFF3EB`) with system detection (`@media (prefers-color-scheme: dark)`) and a header theme toggle button (`data-feature="theme-toggle"`).
+- **Self-Contained Cartographic Map (`LocusMap.tsx`):** Responsive SVG cartography that normalizes geographic `lat/lon` coordinates to an SVG bounding box with diamond workplace markers, candidate rank pins, interactive tooltips, and mandatory OpenStreetMap ODbL attribution. Works 100% offline with zero external map tiles or API keys.
+- **Zero External CDN Dependencies:** Self-hosted fonts bundled via npm `@fontsource/*` with zero runtime external script or font requests.
+- **Elimination of Legacy Styles:** Wireframe `skeleton.css` has been permanently eliminated; all 7 screens use scoped CSS modules and design tokens.
+- **Screens Implemented:**
+  1. `/` — Home screen with editorial typography and primary Start CTA.
+  2. `/plan` — 3-step accessible preferences stepper with combobox typeahead, transit mode options, budget sliders, and household presets.
+  3. `/results` — Single-column reading-width candidate list (~760px) with progressive pipeline progress, multi-criteria filtering, and desktop side-by-side cartographic map split.
+  4. `/area/:id` — Deep locality breakdown with score points table, measured amenity radii (walk times at 5 km/h), rent band with user override and rescoring, and physical safety infrastructure indicators.
+  5. `/compare` — Side-by-side metric matrix comparing candidate localities with sticky pinned metric headers for mobile horizontal scrolling and winner markers.
+  6. `/saved` — Persistent saved shortlist with live count badge, comparison shortcuts, and clipboard share integration.
+  7. `/method` — Complete methodology transparency route detailing base weights, query radii, routing status, provenance legend, and an interactive weighting simulator.
 - **Engine Modes:**
-  - `mock`: Default for rapid UI development (`VITE_ENGINE_MODE=mock`). Renders a quiet "Sample data" banner.
+  - `mock`: Default for offline development (`VITE_ENGINE_MODE=mock`). Renders quiet "Sample data" banner.
   - `snapshot`: Recorded live data sessions (`VITE_ENGINE_MODE=snapshot`). Renders "Recorded demo data · captured {date}".
-  - `live`: Live OpenStreetMap network querying (`VITE_ENGINE_MODE=live`). No banner.
+  - `live`: Live OpenStreetMap network querying (`VITE_ENGINE_MODE=live`). Quiet/no banner.
 - **Dev Tools:**
-  - Route Catalog: `/_map` lists every screen, mock scenario toggles, and all 65+ feature IDs.
-  - Primitives Showcase: `/primitives` demonstrates every UI primitive in every state (loading, disabled, error, etc.).
-- **Contract & Feature ID Guard:**
+  - Route Catalog (`/_map`): Complete directory of all routes, mock scenario triggers, and contract handles.
+  - Primitives Showcase (`/primitives`): Demonstrates every UI primitive in every supported state.
+  - Production Gating: Dev tools and scenario switchers are gated via `isDevMode()` (`import.meta.env.DEV`, `?dev=1`, or `locus_dev=1`).
+- **Testing & Verification:**
   ```bash
-  npm run check:features
+  npm run check           # Typecheck + ESLint + 18 test suites (157 unit tests)
+  npm run check:features  # UI Contract feature ID guard
+  npm run build           # Production bundle build (CSS gzip: 7.92 kB, JS gzip: 135.17 kB)
   ```
-  Renders screens in mock mode and verifies that all `data-feature` contract handles remain intact.
-- **Building UI:**
-  ```bash
-  npm run build
-  ```
+
 
 
 ---
