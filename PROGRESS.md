@@ -2,37 +2,36 @@
 
 ## Resume here
 
-- **Current Phase:** Phase 1 complete — standing by at Phase 1 Checkpoint for human UI wireframe review before starting Phase 2.
-- **Done in Phase 1:**
+- **Current Phase:** Phase 1 complete & Step B audit finished — starting Phase 2 (Infrastructure layer).
+- **Done in Phase 1 & Step B:**
   - Defined full domain model in `src/engine/domain/types.ts`: `Measured<T>`, `Preferences`, `AreaSummary`, `AreaDetail`, `SearchState`, `ComparisonResult`, `MethodInfo`, `PortalLink`, `MockScenario`.
-  - Implemented `MockEngine` in `src/engine/mock/mockEngine.ts` supporting all 6 scenarios: `normal`, `slow`, `partial`, `empty`, `error`, `sparse-data`.
-  - Implemented progressive stage pipeline orchestration simulation (`resolving-city` -> `discovering-localities` -> `routing` -> `profiling-amenities` -> `scoring` -> `done`).
+  - Implemented `MockEngine` in `src/engine/mock/mockEngine.ts` supporting all 6 scenarios.
+  - Implemented progressive stage pipeline orchestration simulation.
   - Created lightweight wireframe stylesheet `src/ui/skeleton.css` (27 lines, strictly ≤ 80 lines).
-  - Built all 8 screens and wireframe controls specified in §5.2:
-    - `/` Home (`HomePage.tsx`)
-    - `/plan` 3-step preference stepper (`PlanPage.tsx`)
-    - `/results` Search results with progress panel, sort/filter, map placeholder, cards, sticky compare bar (`ResultsPage.tsx`)
-    - `/area/:id` Area detail with score breakdown table, commute breakdown, amenity grid with exact radii, rent override input, safety panel, and portal links (`AreaDetailPage.tsx`)
-    - `/compare` Side-by-side comparison with per-row winner marker (`ComparePage.tsx`)
-    - `/saved` Reactive shortlist with persistence across reloads (`SavedPage.tsx`)
-    - `/method` Methodology, weights, radii, routing availability, confidence legend, limitations from `engine.method()` (`MethodPage.tsx`)
-    - `/_map` Dev catalog of all routes, 65+ `data-feature` IDs, and scenario switchers (`DevMapPage.tsx`)
-  - Implemented always-available top dev banner (`ScenarioSwitcher.tsx`).
-  - Added unit test suite `tests/mockEngine.test.ts` (11 tests covering all scenarios, rent overrides, compare, saved store, URL serialization).
-  - Produced comprehensive contract manual `docs/UI_CONTRACT.md`.
-  - Verified architectural boundary: `src/ui/**` imports only from `@engine` (`src/engine/index.ts`); `src/engine/**` has zero UI/React imports.
-  - Verified `npm run check` passes 100% (TSC + ESLint + Vitest) and production build `npm run build` succeeds.
-- **In progress:** Phase 1 Checkpoint review.
-- **Exact next step:** Await human review of the UI skeleton contract, then proceed to Phase 2 (Infrastructure layer: HTTP client, rate-limit queue, cache adapter, mirror failover).
+  - Built all 8 screens and wireframe controls specified in §5.2 with `data-feature` and `data-state` attributes.
+  - Added dev `ScenarioSwitcher.tsx` and dev catalog route `/_map` (`DevMapPage.tsx`).
+  - Authored comprehensive UI contract manual `docs/UI_CONTRACT.md`.
+  - Pushed initial milestone to `origin` (`main`, tags `phase-0`, `phase-1`).
+  - **Contract Completeness Audit (Step B):**
+    - `Measured<T>` on every displayed value confirmed.
+    - Per-criterion breakdown (`points, maxPoints, effectiveWeight, raw`) confirmed.
+    - `dataCompleteness` and `exceedsMax` flag confirmed.
+    - Free-flow AND peak commute per destination and mode confirmed.
+    - Added `localityErrors?: Record<AreaId, string>` to `SearchState` for explicit per-locality failure tracking.
+    - Stable area IDs (`"{osmType}/{osmId}"`), load-more pagination, and cancel handle confirmed.
+    - Added pure `selectAreas(areas, options)` function in engine API; refactored UI to be purely presentational.
+    - Made `GEO_CONTACT` optional in `.env.example` and `README.md`.
+  - `npm run check` passes 100% (20 unit tests).
+- **In progress:** Phase 2 — Infrastructure layer (HTTP client, rate-limit queue, cache adapter, mirror failover).
+- **Exact next step:** Create `src/engine/infra/` modules.
 - **How to check:**
   ```bash
   npm run check
-  npm run build
-  npm run dev
   ```
 - **Known gaps:**
   - Multi-modal routing uses `routing.openstreetmap.de` (car, bike, foot verified; demo host `router.project-osrm.org` only supports driving).
-  - Overpass mirrors belong to a single Roland Olbricht backend cluster; IP rate limits are shared.
+  - Overpass mirrors from the Roland Olbricht cluster share the same IP slot pool; request rate must be queued with ≥ 700 ms spacing and concurrency 1.
+  - When city resolves to a node (like Pune), either `is_in` enclosing boundary or exact geocoder bounding box fallback is used.
   - Transit mode (metro/bus schedule routing) is unverified and disabled in v1.
   - Rent data from listing portals is unavailable via unauthenticated API; starter tier-band heuristic + user override is used.
 

@@ -28,9 +28,11 @@ Users specify a city, a workplace, up to 3 regular destinations, a budget range,
    npm install
    ```
 3. Copy environment configuration:
-   Create a `.env` file in the project root:
+   Create a `.env` file in the project root (optional):
    ```bash
+   # Optional: Nominatim email parameter (relies on browser Referer if omitted)
    GEO_CONTACT=your_email@example.com
+   # Mode: "mock" (default, runs offline) or "live"
    VITE_ENGINE_MODE=mock
    ```
 

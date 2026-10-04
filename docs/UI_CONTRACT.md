@@ -24,6 +24,20 @@ This document is the authoritative integration manual for the human UI designer.
 
 ---
 
+## CONTRACT CHANGE (additive) — Post-Phase 1 Completeness Audit
+
+1. **`selectAreas(areas, options)` Function:**
+   - Exported pure function from `@engine` to eliminate business logic reimplementation in UI redesigns.
+   - Signature: `selectAreas(areas: AreaSummary[], options?: SelectAreasOptions): AreaSummary[]`
+   - Supports options:
+     - `sort?: "match" | "commute" | "amenities" | "rent"`
+     - `filters?: { maxCommuteMin?: number; minMatchScore?: number; hideLowConfidence?: boolean }`
+     - `limit?: number; offset?: number`
+2. **`SearchState.localityErrors`:**
+   - Added `localityErrors?: Record<AreaId, string>` to map per-locality failures directly in search state.
+
+---
+
 ## 2. Global Dev Capabilities & Scenarios
 
 The dev banner (`ScenarioSwitcher`) at the top of the screen allows flipping between 6 realistic engine scenarios:
