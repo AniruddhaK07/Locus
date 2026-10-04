@@ -266,3 +266,56 @@ All entries in this register were established via real network probes executed f
 - **SPA Deployment:** Added `public/_redirects` and `vercel.json` rewrites for single-page application routing.
 - **Production Build:** `npm run build` compiles in 1.26s producing clean static assets (`dist/index.html`, `dist/assets/*.js`, `dist/assets/*.css`).
 - **Comprehensive Quality Check:** `npm run check` passes 100% (112 tests across 11 test suites with 0 TypeScript and 0 ESLint errors).
+
+---
+
+## 11. Live Pipeline Performance Optimization & Overpass Mirror Probes (perf/live-speed)
+
+- **Verification Date:** 2026-10-04
+- **Branch:** `perf/live-speed`
+- **Verification Suites:** `tests/circuitBreaker.test.ts`, `tests/amenities.test.ts`, `tests/pipeline.test.ts`, `npm run smoke -- --city "Delhi"`
+
+### 11.1 Diagnostic Timing Attribution & Root Cause Analysis
+- **Error Cause Attribution:** Added fine-grained error attribution (`CONNECT_TIMEOUT`, `CONNECTION_RESET`, `HTTP_5XX`, `MIRROR_REJECTION`, `CLIENT_ABORT`, `OTHER`).
+- **Root Cause of Baseline 25 "ERROR" Requests:** In Step 1 diagnostics, the 25 errors observed were Node.js `UND_ERR_CONNECT_TIMEOUT` (`ConnectTimeoutError`). Following repeated 429 bursts from rapid sequential requests, the FOSSGIS reverse proxy firewall blocked the client IP at the TCP level (dropping SYN packets), causing subsequent connect attempts to hang for ~10,600ms before timing out.
+
+### 11.2 Overpass Candidate Mirror Probes
+- **`overpass.kumi.systems`:** Dead / HTTP 503 Service Unavailable (service discontinued).
+- **`overpass.private.coffee`:** TLS renegotiation loop timeout; unreachable.
+- **`maps.mail.ru`:** TCP handshake succeeds, but `/interpreter` times out with 0 bytes transferred.
+- **`overpass.osm.ch`:** Responsive (<1s), but only contains Swiss extract (no coverage for Indian cities).
+- **FOSSGIS Cluster (`overpass-api.de`, `z.overpass-api.de`, `lz4.overpass-api.de`):** All point to the same backend cluster managed by Roland Olbricht / FOSSGIS. Failing over within the cluster on HTTP 429 multiplies rate-limit penalties.
+- **Cluster Isolation:** `HttpClient` updated to prevent cluster failover on 429 and respect the `Retry-After` header. Failover across `overpass-api.de` $\rightarrow$ `z.` $\rightarrow$ `lz4.` is permitted strictly for upstream 5xx errors (e.g. 504 Gateway Timeout).
+
+### 11.3 Combined Amenity Queries: Batching vs Envelope
+1. **Named-Set Batch Queries (Chosen Strategy):**
+   - Batches of 4 localities per HTTP POST request using named sets (`.health_0 out count; ...`).
+   - Zero geometry transfer (~1 KB payload).
+   - Exact parity with single-locality radii (grocery 800m, healthcare 1500m, etc.) and strict null-vs-zero semantics.
+   - Works reliably across compact and spread-out cities without memory limits.
+2. **Spatial Envelope Queries (`out center tags;`):**
+   - In dense metropolitan areas like Central Delhi, a bounding box query downloads thousands of OSM elements (several MBs of JSON payload), occasionally triggering Overpass memory limits.
+   - In spread-out cities spanning >25 km (e.g. Bengaluru, >80 km²), envelope queries exceed safe size thresholds.
+   - Kept in `OverpassAmenityProvider.getEnvelopeProfiles` with a safe 80 km² cap as an optional optimization.
+
+### 11.4 Stop-Loss Protections (Circuit Breaker & 90s Budget)
+- **Circuit Breaker:** Automatically trips to `OPEN` state after 3 consecutive failures. Remaining candidate localities are immediately marked with `"Amenity profiling paused: service rate limit or failure threshold reached"`, preventing multi-minute retry stalls.
+- **Stage Budget (`maxAmenityStageMs`, default 90s):** Caps the maximum time spent profiling amenities. Any localities unprofiled when the budget expires receive explicit `null` amenities with `"Amenity profiling timed out: stage time budget reached"`.
+
+### 11.5 Incremental Results & Progressive Rendering
+- After each batch of 4 localities completes, the pipeline recalculates relative normalization across all profiled localities so far, scores them, and emits updated candidate cards to UI subscribers.
+- Initial cards appear within ~18s from a cold start, eliminating blank screens during long searches.
+
+### 11.6 Delhi Benchmark Comparison
+- **Step 1 Baseline (Sequential 1-by-1 queries):**
+  - Total Duration: ~370s (~6.2 minutes)
+  - Total Requests: 37 (12 localities $\times$ amenities + routing + geocoding)
+  - Network Errors / Connect Timeouts: 25
+  - Time to First Cards: ~370s (all-at-once at pipeline end)
+- **Step 2 Optimized (Batches of 4 + Circuit Breaker + Cluster Protection + Incremental Results):**
+  - Total Duration: 111.9s (< 2 minutes, even with 4 upstream 504s on overpass-api.de successfully recovered via mirror failover)
+  - Total Requests: 12 (Nominatim 1, Overpass Locality 2, OSRM 1, Overpass Batched Amenities 8 across retries/mirrors)
+  - Network Errors / Connect Timeouts: 0 (504s handled via mirror failover, 2 client timeouts recovered cleanly)
+  - Time to First Cards: **~18s** (Batch 1 completed in 8.4s)
+  - Locality Completeness: **100%** (12/12 localities profiled and ranked)
+

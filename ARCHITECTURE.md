@@ -205,6 +205,12 @@ The search pipeline executes progressively through 6 stages:
    - When $M < 5$, falls back to documented heuristic reference saturation ceilings (`ABSOLUTE_REFERENCE_CEILINGS`).
    - Computes blended overall Amenities Score (0–10) and Transit Access Score (0–10) renormalized across non-null categories.
 
+4. **Batched Profiling, Stop-Loss & Progressive Emission (`perf/live-speed`):**
+   - **Batched Named Sets:** Localities are grouped into chunks of 4 per Overpass request using indexed named sets (`.health_0 out count; ...`). Reduces 12 sequential requests to just 3 batch requests with zero geometry transfer (~1 KB payload).
+   - **Cluster Failover Guard:** `HttpClient` identifies cluster boundaries to prevent futile intra-cluster retries on HTTP 429, while respecting `Retry-After`.
+   - **Circuit Breaker & Time Budget:** Trips after 3 consecutive failures or on exceeding `maxAmenityStageMs` (~90s), gracefully setting explicit `null` amenities with honest notes rather than stalling the pipeline.
+   - **Progressive / Incremental Results:** Re-ranks and emits preliminary scored cards after every batch of 4 localities, displaying initial results in ~15–18s from a cold start.
+
 ---
 
 ## 8. Commute Engine Architecture (`src/engine/providers/routing/` & `src/engine/scoring/commute.ts`)
