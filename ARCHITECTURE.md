@@ -226,5 +226,45 @@ The search pipeline executes progressively through 6 stages:
      $$\text{Effective Commute} = 0.7 \times T_{\text{primary}} + 0.3 \times \frac{1}{M}\sum_{k=1}^M T_{\text{extra}, k}$$
    - Commute utility score decays smoothly via $S = 100 \times \exp(-k \times t / t_{\max})$ ($k = 1.0$).
 
+---
+
+## 9. Scoring Engine & Explanations Architecture (`src/engine/scoring/`)
+
+1. **Multi-Criteria Match Scoring (`matchScore.ts`):**
+   - Combines 6 criteria with base weights (budget 28, commute 27, safety 18, amenities 12, transit 8, household 7).
+   - Priority focus boost multiplies selected criterion base weight by 1.4 (`HEURISTIC`).
+   - Confidence factor adjustment: $\text{effectiveWeight} = \text{baseWeight} \times \text{confidenceFactor}$ (high 1.0, medium 0.7, low 0.35, none 0).
+   - Non-null renormalization: Weights renormalize strictly over criteria with valid, non-null values ($S_{eff} > 0$).
+   - Data completeness: Deterministically computes proportion of prior weight backed by non-null data ($\sum_{non-null} W_{base} / 100$).
+   - Zero-fabrication guarantee: Missing data is strictly `null`; a real zero count earns 0 points but retains maxPoints and completeness.
+
+2. **Continuous Monotone Budget Utility (`budget.ts`):**
+   - Implements piecewise continuous utility function:
+     - $R_{\min} \le R \le R_t \implies U = 1.0$
+     - $R_t < R \le R_{\max} \implies U = 1.0 - 0.3 \times \frac{R - R_t}{R_{\max} - R_t}$
+     - $R > R_{\max} \implies U = 0.7 \times \exp\left(-4 \times \frac{R - R_{\max}}{R_{\max}}\right)$
+     - $R < R_{\min} \implies U = \max\left(0.7, 1.0 - 0.3 \times \frac{R_{\min} - R}{R_{\min}}\right)$
+
+3. **Safety Infrastructure Indicator (`safety.ts`):**
+   - Evaluated strictly from physical OSM infrastructure tags (police stations, lit streets, surveillance nodes).
+   - Disclaimed as `"infrastructure indicator, not crime data"`.
+   - Thin coverage (< 5 tags) yields `confidence: "low"`; zero tags returns `null` with `confidence: "none"`.
+   - Never substitutes arbitrary baseline constants.
+
+4. **Household Fit Scoring (`household.ts`):**
+   - Persona-based deterministic linear blend of normalized category scores:
+     - Family: schools (40%), parks/leisure (30%), healthcare (30%).
+     - Couple: dining/cafes (50%), leisure/entertainment (50%).
+     - Student: education (40%), transit access (35%), dining (25%).
+     - Balanced: equal 20% across all 5 categories.
+
+5. **Rent Provider & Tier Bands (`src/engine/providers/rent/`):**
+   - `RentProvider` with `UserOverride` (`source: "user"`, `confidence: "high"`).
+   - Heuristic starter tier bands (Tier 1 Prime, Tier 1 Standard, Tier 2, Tier 3) scaled by candidate centrality rank.
+
+6. **Template Explanation Generator (`explanations.ts`):**
+   - Deterministic plain English generation (no LLM, 0 ms latency, no hallucinations).
+   - Generates 1 composite summary statement and exactly 3 `keyFacts` covering commute, amenities/fit, and rent/caveats.
+
 
 

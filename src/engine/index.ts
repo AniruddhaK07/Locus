@@ -10,6 +10,12 @@ import { MockEngine } from "./mock/mockEngine";
 
 export * from "./domain/types";
 export * from "./domain/selection";
+export * from "./scoring/budget";
+export * from "./scoring/safety";
+export * from "./scoring/household";
+export * from "./scoring/matchScore";
+export * from "./scoring/explanations";
+export * from "./providers/rent";
 
 export const ENGINE_NAME = "Locus Engine";
 export const ENGINE_VERSION = "0.1.0";

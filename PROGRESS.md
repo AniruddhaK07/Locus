@@ -2,26 +2,26 @@
 
 ## Resume here
 
-- **Current Phase:** Phase 5 complete — starting Phase 6 (Scoring engine and explanations).
-- **Done in Phase 5:**
-  - Implemented `OsrmRoutingProvider` (`src/engine/providers/routing/osrm.ts`) querying multi-modal endpoints on `routing.openstreetmap.de` (`routed-car`, `routed-bike`, `routed-foot`) with `/table` matrix batching and fallback to demo host.
-  - Implemented honest peak congestion heuristic: $T_{peak} = T_{freeflow} \times (1 + \alpha_{city} \times (1 - \exp(-d / 8)))$ reporting calculated peak minutes and lower/upper ranges.
-  - Implemented city tier lookup (`resolveCityAlpha`) resolving $\alpha_{city}$ strictly from geocoder administrative tags (Mega-Metro 2.3, Dense Metro 1.9, Large Metro 1.6, Standard 1.2).
-  - Implemented multi-destination blending (70% primary destination + 30% extras average) and commute exponential decay utility.
-  - Created `docs/CALIBRATION.md` detailing the congestion heuristic and empirical calibration table.
-  - Created unit test suite `tests/commute.test.ts` (15 tests) verifying tier resolution, corridor calibration, 70/30 weighting, failure isolation, and OSRM table URL building & parsing.
-  - Extended live smoke script `scripts/smoke.ts` to execute live multi-modal routing for Bengaluru (5m free-flow $\rightarrow$ 8m peak) and Pune (1m free-flow $\rightarrow$ 1m peak) and verified unverified transit mode produces explicit `null`.
-  - Verified `npm run check` passes 100% (63 unit tests across 7 test suites).
-- **In progress:** Phase 6 — Scoring engine and explanations.
-- **Phase 6 Plan (5–10 lines):**
-  1. Implement budget utility function with strict property tests (continuity at $R_{\min}, R_t, R_{\max}$, monotonicity, $U \in [0, 1]$).
-  2. Implement `RentProvider` with `CityTierBand` heuristic estimate scaled by locality rank + `UserOverride` support.
-  3. Implement `SafetyProvider` computing infrastructure indicators (police, lit ways, surveillance) with coverage check and explicit disclaimers.
-  4. Implement household fit scoring (family, couple, student, balanced) derived deterministically from category counts.
-  5. Implement multi-criteria weighting, confidence factoring, renormalization over non-null criteria, and `dataCompleteness` calculation.
-  6. Implement template-based plain English explanations highlighting strengths, caveats, and low-confidence inputs without LLM calls.
-  7. Write unit tests in `tests/scoring.test.ts` asserting all budget property tests, sparse data handling, and absence of `||` defaults.
-  8. Run `npm run check`, commit `phase(5): Commute engine`, tag `phase-5`, and push.
+- **Current Phase:** Phase 6 complete — starting Phase 7 (Pipeline orchestration, live wiring, persistence).
+- **Done in Phase 6:**
+  - Implemented continuous, monotone budget utility function `computeBudgetUtility` with strict property tests (continuity at $R_{\min}, R_t, R_{\max}$, monotonicity for $R > R_t$, and $U \in [0, 1]$).
+  - Implemented `RentProvider` with `CityTierBand` heuristic estimate scaled by candidate centrality rank + `UserOverride` precedence.
+  - Implemented `computeSafetyIndicator` evaluating physical OSM infrastructure tags (police, lit ways, surveillance) with thin coverage check and mandatory caveat `"infrastructure indicator, not crime data"`.
+  - Implemented `computeHouseholdFit` evaluating deterministic persona blends (family, couple, student, balanced) without hardcoded ratings.
+  - Implemented `scoreArea` multi-criteria scoring combining 6 criteria, confidence factoring ($W_{eff} = W_{base} \times C$), renormalization over non-null inputs ($S_{eff} > 0$), and `dataCompleteness` calculation.
+  - Implemented `generateExplanations` producing template-based plain English summaries and exactly 3 `keyFacts` without LLM calls.
+  - Added unit test suite `tests/scoring.test.ts` (27 tests) verifying budget properties, sparse data renormalization, zero vs null distinction, and a static AST/regex guard prohibiting `||` default substitutions on measured values.
+  - Verified `npm run check` passes 100% (90 unit tests across 8 test suites).
+- **In progress:** Phase 7 — Pipeline orchestration, live wiring, persistence.
+- **Phase 7 Plan (5–10 lines):**
+  1. Implement `SearchPipeline` orchestrating progressive stages (`resolving-city` $\rightarrow$ `discovering-localities` $\rightarrow$ `routing` $\rightarrow$ `profiling-amenities` $\rightarrow$ `scoring` $\rightarrow$ `done`).
+  2. Implement progressive state emissions via `SearchHandle` emitting updates after each locality batch so UI displays cards immediately.
+  3. Wire cancellation mechanics with `AbortController` and infra queue task purging on abort.
+  4. Implement `LiveEngine` implementing the public `Engine` interface using real providers, caching in IndexedDB.
+  5. Implement `prefsToQuery` and `queryToPrefs` for shareable URL query serialization and deep-linking.
+  6. Support direct locality detail retrieval by stable id `"{type}/{id}"` from cache or on-demand fetch.
+  7. Toggle engine mode via `VITE_ENGINE_MODE=live` without modifying UI presentation code.
+  8. Write pipeline unit tests in `tests/pipeline.test.ts` asserting progressive states, failure isolation, and abort handling; verify with `npm run smoke`.
 - **How to check:**
   ```bash
   npm run check
@@ -45,6 +45,7 @@
 - **Phase 3 Completed:** `2026-10-04T12:32:00+05:30`
 - **Phase 4 Completed:** `2026-10-04T12:46:00+05:30`
 - **Phase 5 Completed:** `2026-10-04T12:55:00+05:30`
+- **Phase 6 Completed:** `2026-10-04T13:10:00+05:30`
 - **Repository:** `https://github.com/AniruddhaK07/Locus.git`
 
 ---
@@ -59,7 +60,7 @@
 | **3** | Geocoding and locality discovery | 3 h | **DONE** | 2026-10-04T12:32:00+05:30 |
 | **4** | Amenity profile | 2 h | **DONE** | 2026-10-04T12:46:00+05:30 |
 | **5** | Commute engine | 3 h | **DONE** | 2026-10-04T12:55:00+05:30 |
-| **6** | Scoring engine and explanations | 2.5 h | Pending | — |
+| **6** | Scoring engine and explanations | 2.5 h | **DONE** | 2026-10-04T13:10:00+05:30 |
 | **7** | Pipeline orchestration, live wiring, persistence | 3 h | Pending | — |
 | **8** | Compare, saved, portal links | 1.5 h | Pending | — |
 | **9** | Hardening, demo resilience, deploy, final docs | 3 h | Pending | — |
@@ -124,3 +125,18 @@
 
 
 
+
+---
+
+## Phase 6 Verification & Acceptance Results
+
+1. **Commands Executed:**
+   - `npm run check` $\rightarrow$ Passed (0 TS errors, 0 ESLint errors/warnings, 90 unit tests passed across 8 test suites in 1.95s).
+2. **Acceptance Criteria Verification:**
+   - Budget property tests: Continuity at $R_{\min}, R_t, R_{\max}$; monotonicity for $R > R_t$; $U \in [0, 1]$; $U(R_{\max} - \epsilon) > U(R_{\max} + \epsilon)$ verified in `tests/scoring.test.ts`.
+   - Sparse data cases: When safety and transit data are null, weights renormalize to 100, `dataCompleteness` drops proportionally (e.g. to 0.74), and points are computed without distortion.
+   - Strict zero vs null: Verified that real 0 count retains `maxPoints` and contributes to `dataCompleteness`, while missing `null` has `maxPoints = 0` and is excluded from completeness.
+   - Rent provider: Starter tier bands scaled by candidate rank (central vs peripheral) verified; user rent override takes immediate precedence (`source: "user"`, `confidence: "high"`).
+   - Safety indicator: Derived purely from physical OSM tags (police, lit ways, surveillance); labels `"infrastructure indicator, not crime data"`; yields `null` when zero tags are mapped.
+   - Zero-fabrication AST/regex guard: Static code test scans all scoring files to ensure no `.value || <default>` pattern exists.
+   - Template explanations: Generates honest summary statements and exactly 3 `keyFacts` covering commute, lifestyle/fit, and rent/caveats with zero LLM calls.

@@ -65,6 +65,9 @@ export const CONFIDENCE_FACTORS = {
   none: 0.0
 };
 
+// Priority Focus Multiplier (HEURISTIC)
+export const PRIORITY_FOCUS_BOOST = 1.4;
+
 // Query Radii in Meters (HEURISTIC: verified design standard)
 export const QUERY_RADII = {
   grocery: 800,
@@ -98,4 +101,19 @@ export const CITY_TIER_ALPHAS: Record<string, number> = {
 export const PRIMARY_COMMUTE_WEIGHT = 0.7; // ASSUMPTION: 70% primary destination weight
 export const EXTRAS_COMMUTE_WEIGHT = 0.3;  // ASSUMPTION: 30% split across extra destinations
 export const COMMUTE_EXP_K = 1.0;          // HEURISTIC: decay factor in exp(-k * t / tMax)
+
+// Starter Rent Tier Bands (UNVERIFIED starter heuristic table per §4.4)
+export interface RentTierBand {
+  tierName: string;
+  bandLow: number;
+  bandHigh: number;
+}
+
+export const RENT_TIER_BANDS: Record<string, RentTierBand> = {
+  tier_1_prime: { tierName: "Tier 1 Prime", bandLow: 22000, bandHigh: 120000 },
+  tier_1_standard: { tierName: "Tier 1 Standard", bandLow: 16000, bandHigh: 65000 },
+  tier_2: { tierName: "Tier 2", bandLow: 9000, bandHigh: 32000 },
+  tier_3: { tierName: "Tier 3", bandLow: 5000, bandHigh: 18000 }
+};
+
 

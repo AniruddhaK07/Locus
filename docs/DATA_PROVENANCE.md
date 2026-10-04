@@ -93,5 +93,52 @@ This document tracks every numeric metric and qualitative indicator produced by 
    - Confidence: `none`.
    - Explicit note: `"Transit schedule routing is unverified in v1; public transit GTFS unavailable"`.
 
+---
+
+## 7. Rent & Cost Estimation Provenance
+
+1. **City Tier Band Heuristic (`RentTierBand`):**
+   - Source: `heuristic`.
+   - Confidence: `low`.
+   - Note: `"estimated band, not listing data"`.
+   - Provenance Status: **UNVERIFIED starter heuristic table** (§4.4).
+   - Starter Table:
+     | Tier | Cities / Examples | Band Low (₹/mo) | Band High (₹/mo) |
+     | :--- | :--- | :--- | :--- |
+     | Tier 1 Prime | Mumbai, Delhi, Bengaluru | ₹22,000 | ₹120,000 |
+     | Tier 1 Standard | Pune, Hyderabad, Chennai | ₹16,000 | ₹65,000 |
+     | Tier 2 | Jaipur, Lucknow, Nagpur, Indore, Ahmedabad, Surat, Chandigarh | ₹9,000 | ₹32,000 |
+     | Tier 3 | Rest of India | ₹5,000 | ₹18,000 |
+   - Locality Scaling: Scaled continuously by candidate centrality / density rank ($r \in [0, 1]$) with a $\pm 20\%$ locality band width.
+2. **User Rent Override:**
+   - Source: `user`.
+   - Confidence: `high`.
+   - Note: `"user-entered known rent"`. Takes precedence over tier-band heuristic whenever provided by the user.
+
+---
+
+## 8. Multi-Criteria Scoring & Household Fit Provenance
+
+1. **Criteria & Prior Weights (`BASE_WEIGHTS`):**
+   - Prior Weights (sum = 100): Budget 28, Commute 27, Safety 18, Amenities 12, Transit 8, Household 7 (`HEURISTIC`).
+   - Priority Focus: Multiplies chosen criterion base weight by 1.4 (`HEURISTIC`).
+2. **Confidence Adjustment & Missing Data:**
+   - Effective Weight: $\text{effectiveWeight} = \text{baseWeight} \times \text{confidenceFactor}$ (high 1.0, medium 0.7, low 0.35, none 0).
+   - Renormalization: Strictly renormalizes over criteria with non-null values ($S_{eff} > 0$).
+   - Data Completeness: Proportion of prior weight backed by non-null data ($\sum_{non-null} W_{base} / 100$).
+   - Strict Zero vs Null: A real count of 0 is measured with non-zero weight; missing data is `null` with weight 0. Zero `|| 0` substitutions.
+3. **Continuous Monotone Budget Utility:**
+   - Evaluated at representative rent $R$:
+     - $R_{\min} \le R \le R_t \rightarrow U = 1.0$
+     - $R_t < R \le R_{\max} \rightarrow U = 1.0 - 0.3 \times (R - R_t) / (R_{\max} - R_t)$ (falls linearly from 1 to 0.7)
+     - $R > R_{\max} \rightarrow U = 0.7 \times \exp(-4 \times (R - R_{\max}) / R_{\max})$
+     - $R < R_{\min} \rightarrow U = \max(0.7, 1.0 - 0.3 \times (R_{\min} - R) / R_{\min})$
+4. **Household Fit Personas:**
+   - Derived deterministically from relative category scores:
+     - Family: schools (40%), parks/leisure (30%), healthcare (30%).
+     - Couple: dining (50%), leisure (50%).
+     - Student: education (40%), transit (35%), dining (25%).
+     - Balanced: equal 20% across all 5.
+
 
 
