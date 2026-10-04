@@ -1,7 +1,19 @@
-import { useState, useEffect } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import type { Destination, HouseholdType, PlaceSuggestion, Preferences, TransportMode } from "@engine";
+import type {
+  Destination,
+  HouseholdType,
+  PlaceSuggestion,
+  Preferences,
+  TransportMode,
+} from "@engine";
 import { getEngine } from "@engine";
+import { Combobox } from "../components/Combobox";
+import { Button } from "../primitives/Button";
+import { Slider } from "../primitives/Slider";
+import { Select } from "../primitives/Select";
+import { Field } from "../primitives/Field";
+import { formatCurrency } from "../utils/format";
 
 export function PlanPage() {
   const navigate = useNavigate();
@@ -10,65 +22,87 @@ export function PlanPage() {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Step 1: City & Workplace
+  // Step 1: City & Workplace Anchor
   const [cityQuery, setCityQuery] = useState("Bengaluru");
-  const [citySuggestions, setCitySuggestions] = useState<PlaceSuggestion[]>([]);
   const [resolvedCity, setResolvedCity] = useState<PlaceSuggestion | null>({
     id: "city-bengaluru",
     name: "Bengaluru",
     city: "Bengaluru",
     lat: 12.9716,
     lon: 77.5946,
-    type: "city"
+    type: "city",
   });
 
   const [workQuery, setWorkQuery] = useState("Manyata Tech Park");
-  const [workSuggestions, setWorkSuggestions] = useState<PlaceSuggestion[]>([]);
   const [resolvedWorkplace, setResolvedWorkplace] = useState<Destination | null>({
     id: "workplace",
     label: "Workplace",
     name: "Manyata Tech Park",
     lat: 13.0489,
-    lon: 77.6200
+    lon: 77.62,
   });
 
-  // Step 2: Commute & Extra Destinations
+  // Step 2: Commute & Secondary Destinations
   const [transportMode, setTransportMode] = useState<TransportMode>("car");
   const [maxCommuteMin, setMaxCommuteMin] = useState(45);
   const [destinations, setDestinations] = useState<Destination[]>([]);
+  const [isAddingDest, setIsAddingDest] = useState(false);
   const [newDestLabel, setNewDestLabel] = useState("");
   const [newDestName, setNewDestName] = useState("");
 
-  // Step 3: Budget & Household
+  // Step 3: Budget & Household Fit
   const [budgetMin, setBudgetMin] = useState<number | undefined>(20000);
   const [budgetMax, setBudgetMax] = useState<number>(60000);
   const [householdType, setHouseholdType] = useState<HouseholdType>("balanced");
   const [priorityFocus, setPriorityFocus] = useState<Preferences["priorityFocus"]>("commute");
 
-  // Typeahead search
-  useEffect(() => {
-    let active = true;
-    if (cityQuery.length >= 2 && !resolvedCity) {
-      engine.suggestPlaces(cityQuery).then((res) => {
-        if (active) setCitySuggestions(res);
-      });
-    } else {
-      setCitySuggestions([]);
+  // Routing profiles from engine.method() (§3)
+  const routingProfiles = useMemo(() => {
+    try {
+      return engine.method().routingProfiles;
+    } catch {
+      return null;
     }
-    return () => { active = false; };
-  }, [cityQuery, resolvedCity, engine]);
+  }, [engine]);
 
-  useEffect(() => {
-    let active = true;
-    if (workQuery.length >= 2 && !resolvedWorkplace) {
-      engine.suggestPlaces(workQuery, { city: resolvedCity?.name }).then((res) => {
-        if (active) setWorkSuggestions(res);
-      });
-    } else {
-      setWorkSuggestions([]);
+  const transportOptions = useMemo(() => {
+    const modes: { mode: TransportMode; label: string }[] = [
+      { mode: "car", label: "Car" },
+      { mode: "bike", label: "Two-wheeler (Bike)" },
+      { mode: "walk", label: "Walking" },
+      { mode: "transit", label: "Public Transit" },
+    ];
+
+    if (!routingProfiles) {
+      return modes.map((m) => ({ value: m.mode, label: m.label }));
     }
-    return () => { active = false; };
-  }, [workQuery, resolvedWorkplace, resolvedCity, engine]);
+
+    return modes
+      .filter((m) => routingProfiles[m.mode]?.available)
+      .map((m) => {
+        const isHeuristic = routingProfiles[m.mode]?.isHeuristic;
+        const note = isHeuristic ? " (estimate)" : "";
+        return {
+          value: m.mode,
+          label: `${m.label}${note}`,
+        };
+      });
+  }, [routingProfiles]);
+
+  // Place suggestions fetchers
+  const fetchCitySuggestions = useCallback(
+    async (query: string, signal: AbortSignal) => {
+      return engine.suggestPlaces(query, undefined, signal);
+    },
+    [engine]
+  );
+
+  const fetchWorkplaceSuggestions = useCallback(
+    async (query: string, signal: AbortSignal) => {
+      return engine.suggestPlaces(query, { city: resolvedCity?.name }, signal);
+    },
+    [engine, resolvedCity]
+  );
 
   const handleAddDestination = () => {
     if (destinations.length >= 3) {
@@ -79,16 +113,19 @@ export function PlanPage() {
       setErrorMsg("Please specify both a label (e.g. Gym) and a place name.");
       return;
     }
+
     const newDest: Destination = {
       id: `dest-${Date.now()}`,
       label: newDestLabel.trim(),
       name: newDestName.trim(),
       lat: (resolvedCity?.lat ?? 12.9716) + (Math.random() - 0.5) * 0.05,
-      lon: (resolvedCity?.lon ?? 77.5946) + (Math.random() - 0.5) * 0.05
+      lon: (resolvedCity?.lon ?? 77.5946) + (Math.random() - 0.5) * 0.05,
     };
+
     setDestinations([...destinations, newDest]);
     setNewDestLabel("");
     setNewDestName("");
+    setIsAddingDest(false);
     setErrorMsg(null);
   };
 
@@ -100,7 +137,7 @@ export function PlanPage() {
     setErrorMsg(null);
     if (step === 1) {
       if (!resolvedCity) {
-        setErrorMsg("Please select and resolve a city from the suggestion list.");
+        setErrorMsg("Please select and resolve a city from the suggestions.");
         return;
       }
       if (!resolvedWorkplace) {
@@ -130,7 +167,7 @@ export function PlanPage() {
       return;
     }
     if (budgetMax <= 0) {
-      setErrorMsg("Please enter a valid maximum budget.");
+      setErrorMsg("Please enter a valid maximum monthly budget.");
       return;
     }
     if (budgetMin !== undefined && budgetMin > budgetMax) {
@@ -147,7 +184,7 @@ export function PlanPage() {
       budgetMin,
       budgetMax,
       householdType,
-      priorityFocus
+      priorityFocus,
     };
 
     try {
@@ -160,284 +197,340 @@ export function PlanPage() {
     navigate(`/results?${query}`);
   };
 
+  // Keyboard Enter navigation between steps
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      const target = e.target as HTMLElement;
+      // Do not advance if user is typing in combobox or button
+      if (target.tagName === "INPUT" && target.getAttribute("role") !== "combobox") {
+        if (step < 3) {
+          e.preventDefault();
+          handleNext();
+        }
+      }
+    }
+  };
+
   return (
-    <main data-feature="plan-screen" data-state="ready" className="box">
-      <header>
-        <h2>Preferences Stepper (Step {step} of 3)</h2>
-        <div className="row" style={{ margin: "8px 0" }}>
-          <span className={`badge ${step === 1 ? "winner" : ""}`}>1. City & Anchors</span>
-          <span>&gt;</span>
-          <span className={`badge ${step === 2 ? "winner" : ""}`}>2. Transit & Commute</span>
-          <span>&gt;</span>
-          <span className={`badge ${step === 3 ? "winner" : ""}`}>3. Budget & Lifestyle</span>
-        </div>
-      </header>
+    <main data-feature="plan-screen" data-state="ready" className="locus-stepper">
+      {/* 3-Segment Progress Indicator (§6) */}
+      <div className="locus-stepper__progress" aria-hidden="true">
+        <div className={`locus-stepper__segment ${step === 1 ? "locus-stepper__segment--active" : "locus-stepper__segment--completed"}`} />
+        <div className={`locus-stepper__segment ${step === 2 ? "locus-stepper__segment--active" : step > 2 ? "locus-stepper__segment--completed" : ""}`} />
+        <div className={`locus-stepper__segment ${step === 3 ? "locus-stepper__segment--active" : ""}`} />
+      </div>
 
-      {errorMsg && (
-        <div className="error-msg" data-feature="validation-error">
-          [Validation Error]: {errorMsg}
-        </div>
-      )}
+      <div className="locus-stepper__meta">
+        <span className="locus-stepper__step-tag">Step {step} of 3</span>
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--ink-muted)" }}>
+          {step === 1 ? "City & Workplace" : step === 2 ? "Transit & Commute" : "Budget & Household"}
+        </span>
+      </div>
 
-      <form onSubmit={handleSubmit}>
-        {/* STEP 1 */}
+      <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} noValidate>
+        {/* ==================================================================
+            STEP 1: City & Workplace Anchors
+            ================================================================== */}
         {step === 1 && (
-          <fieldset data-feature="step-1-panel">
-            <legend>Step 1: City & Workplace</legend>
+          <fieldset data-feature="step-1-panel" className="locus-stepper__panel">
+            <legend className="locus-stepper__title">Where do you work and live?</legend>
+            <p className="locus-stepper__desc">
+              Specify your destination city and primary workplace or study anchor.
+            </p>
 
-            <div>
-              <label htmlFor="city-input">City Name:</label>
-              <br />
-              <input
-                id="city-input"
-                data-feature="city-input"
-                value={cityQuery}
-                onChange={(e) => {
-                  setCityQuery(e.target.value);
-                  setResolvedCity(null);
-                }}
-                placeholder="e.g. Bengaluru, Pune, Delhi"
-              />
-              {resolvedCity && (
-                <div className="chip" data-feature="city-chip" style={{ marginLeft: "8px" }}>
-                  <span>✓ {resolvedCity.name}</span>
-                  <button type="button" onClick={() => setResolvedCity(null)}>×</button>
-                </div>
-              )}
-            </div>
+            <Combobox
+              label="Destination City"
+              inputId="city-input"
+              value={cityQuery}
+              selectedItem={resolvedCity}
+              onInputChange={(val) => {
+                setCityQuery(val);
+                setResolvedCity(null);
+              }}
+              onSelect={(item) => {
+                setResolvedCity(item);
+                setCityQuery(item.name);
+              }}
+              onClear={() => {
+                setResolvedCity(null);
+                setCityQuery("");
+              }}
+              fetchSuggestions={fetchCitySuggestions}
+              inputDataFeature="city-input"
+              suggestionsDataFeature="city-suggestions"
+              selectBtnDataFeature="city-select-btn"
+              chipDataFeature="city-chip"
+              placeholder="e.g. Bengaluru, Pune, Delhi"
+              autoFocus
+            />
 
-            {citySuggestions.length > 0 && !resolvedCity && (
-              <div data-feature="city-suggestions" className="box" style={{ background: "#fff", padding: "6px" }}>
-                <small>Select matching city:</small>
-                {citySuggestions.map((s) => (
-                  <div key={s.id} className="row" style={{ justifyContent: "space-between", margin: "4px 0" }}>
-                    <span>{s.name} ({s.state || s.type})</span>
-                    <button
-                      type="button"
-                      data-feature="city-select-btn"
-                      onClick={() => {
-                        setResolvedCity(s);
-                        setCityQuery(s.name);
-                        setCitySuggestions([]);
-                      }}
-                    >
-                      Select
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div style={{ marginTop: "16px" }}>
-              <label htmlFor="workplace-input">Primary Anchor / Workplace:</label>
-              <br />
-              <input
-                id="workplace-input"
-                data-feature="workplace-input"
-                value={workQuery}
-                onChange={(e) => {
-                  setWorkQuery(e.target.value);
-                  setResolvedWorkplace(null);
-                }}
-                placeholder="e.g. Manyata Tech Park, Cyber City"
-              />
-              {resolvedWorkplace && (
-                <div className="chip" data-feature="workplace-chip" style={{ marginLeft: "8px" }}>
-                  <span>✓ {resolvedWorkplace.name}</span>
-                  <button type="button" onClick={() => setResolvedWorkplace(null)}>×</button>
-                </div>
-              )}
-            </div>
-
-            {workSuggestions.length > 0 && !resolvedWorkplace && (
-              <div data-feature="workplace-suggestions" className="box" style={{ background: "#fff", padding: "6px" }}>
-                <small>Select workplace location:</small>
-                {workSuggestions.map((s) => (
-                  <div key={s.id} className="row" style={{ justifyContent: "space-between", margin: "4px 0" }}>
-                    <span>{s.name} ({s.city || s.type})</span>
-                    <button
-                      type="button"
-                      data-feature="workplace-select-btn"
-                      onClick={() => {
-                        setResolvedWorkplace({
-                          id: s.id,
-                          label: "Workplace",
-                          name: s.name,
-                          lat: s.lat,
-                          lon: s.lon
-                        });
-                        setWorkQuery(s.name);
-                        setWorkSuggestions([]);
-                      }}
-                    >
-                      Select
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
+            <Combobox
+              label="Primary Workplace or Anchor"
+              inputId="workplace-input"
+              value={workQuery}
+              selectedItem={resolvedWorkplace}
+              onInputChange={(val) => {
+                setWorkQuery(val);
+                setResolvedWorkplace(null);
+              }}
+              onSelect={(item) => {
+                setResolvedWorkplace({
+                  id: "workplace",
+                  label: "Workplace",
+                  name: item.name,
+                  lat: item.lat,
+                  lon: item.lon,
+                });
+                setWorkQuery(item.name);
+              }}
+              onClear={() => {
+                setResolvedWorkplace(null);
+                setWorkQuery("");
+              }}
+              fetchSuggestions={fetchWorkplaceSuggestions}
+              inputDataFeature="workplace-input"
+              suggestionsDataFeature="workplace-suggestions"
+              selectBtnDataFeature="workplace-select-btn"
+              chipDataFeature="workplace-chip"
+              placeholder="e.g. Manyata Tech Park, Cyber City, BKC"
+            />
           </fieldset>
         )}
 
-        {/* STEP 2 */}
+        {/* ==================================================================
+            STEP 2: Transit & Commute
+            ================================================================== */}
         {step === 2 && (
-          <fieldset data-feature="step-2-panel">
-            <legend>Step 2: Commute & Additional Destinations</legend>
+          <fieldset data-feature="step-2-panel" className="locus-stepper__panel">
+            <legend className="locus-stepper__title">How do you get around?</legend>
+            <p className="locus-stepper__desc">
+              Configure your daily commute mode and maximum acceptable travel time.
+            </p>
 
-            <div>
-              <label htmlFor="transport-select">Transport Mode:</label>
-              <br />
-              <select
-                id="transport-select"
-                data-feature="transport-select"
-                value={transportMode}
-                onChange={(e) => setTransportMode(e.target.value as TransportMode)}
-              >
-                <option value="car">Driving / Car (OSRM routed-car)</option>
-                <option value="bike">Bicycle / Two-Wheeler (OSRM routed-bike)</option>
-                <option value="walk">Walking (OSRM routed-foot)</option>
-                <option value="transit">Public Transit (Metro/Bus - Heuristic)</option>
-              </select>
+            <Select
+              label="Daily Transport Mode"
+              id="transport-select"
+              data-feature="transport-select"
+              value={transportMode}
+              options={transportOptions}
+              onChange={(e) => setTransportMode(e.target.value as TransportMode)}
+            />
+
+            <Slider
+              label="Maximum One-Way Commute"
+              id="max-commute-input"
+              data-feature="max-commute-input"
+              min={15}
+              max={120}
+              step={5}
+              value={maxCommuteMin}
+              unit="min"
+              onChange={setMaxCommuteMin}
+            />
+
+            {/* Secondary Destinations (gym, school, etc. up to 3) */}
+            <div style={{ marginTop: "var(--space-4)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <span className="locus-field__label">Secondary Destinations ({destinations.length}/3)</span>
+                {!isAddingDest && destinations.length < 3 && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    data-feature="add-dest-btn"
+                    onClick={() => setIsAddingDest(true)}
+                  >
+                    + Add a destination
+                  </Button>
+                )}
+              </div>
+
+              {destinations.length > 0 && (
+                <div className="locus-dest-list">
+                  {destinations.map((d) => (
+                    <div key={d.id} className="locus-dest-item" data-feature="dest-row">
+                      <div>
+                        <strong>{d.label}:</strong> <span>{d.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        data-feature="remove-dest-btn"
+                        className="locus-chip__remove"
+                        onClick={() => handleRemoveDestination(d.id)}
+                        aria-label={`Remove ${d.label}`}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isAddingDest && (
+                <div
+                  style={{
+                    backgroundColor: "var(--surface)",
+                    border: "var(--border-hairline)",
+                    borderRadius: "var(--radius-sm)",
+                    padding: "var(--space-3)",
+                    marginTop: "var(--space-2)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "var(--space-2)",
+                  }}
+                >
+                  <div style={{ display: "grid", gridTemplateColumns: "120px 1fr", gap: "var(--space-2)" }}>
+                    <input
+                      placeholder="Label (e.g. Gym)"
+                      value={newDestLabel}
+                      onChange={(e) => setNewDestLabel(e.target.value)}
+                      className="locus-field__input"
+                    />
+                    <input
+                      placeholder="Locality or place name"
+                      value={newDestName}
+                      onChange={(e) => setNewDestName(e.target.value)}
+                      className="locus-field__input"
+                    />
+                  </div>
+                  <div style={{ display: "flex", gap: "var(--space-2)", justifyContent: "flex-end" }}>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setIsAddingDest(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="button" variant="secondary" size="sm" onClick={handleAddDestination}>
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
+          </fieldset>
+        )}
 
-            <div style={{ marginTop: "12px" }}>
-              <label htmlFor="max-commute-input">Maximum Acceptable Commute (minutes):</label>
-              <br />
-              <input
-                id="max-commute-input"
+        {/* ==================================================================
+            STEP 3: Budget & Household
+            ================================================================== */}
+        {step === 3 && (
+          <fieldset data-feature="step-3-panel" className="locus-stepper__panel">
+            <legend className="locus-stepper__title">What is your budget & household fit?</legend>
+            <p className="locus-stepper__desc">
+              Rental bands are calibrated against city tiers. No broker listings are contacted.
+            </p>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-4)" }}>
+              <Field
+                label="Target Monthly Budget"
+                id="budget-min-input"
+                data-feature="budget-min-input"
                 type="number"
-                data-feature="max-commute-input"
-                min="10"
-                max="180"
-                value={maxCommuteMin}
-                onChange={(e) => setMaxCommuteMin(Number(e.target.value))}
+                step="1000"
+                min="5000"
+                value={budgetMin ?? ""}
+                hint={budgetMin ? formatCurrency(budgetMin) : "Optional"}
+                onChange={(e) => setBudgetMin(e.target.value ? Number(e.target.value) : undefined)}
+              />
+
+              <Field
+                label="Maximum Budget"
+                id="budget-max-input"
+                data-feature="budget-max-input"
+                type="number"
+                step="1000"
+                min="10000"
+                required
+                value={budgetMax}
+                hint={formatCurrency(budgetMax)}
+                onChange={(e) => setBudgetMax(Number(e.target.value))}
               />
             </div>
 
-            <fieldset style={{ marginTop: "16px" }}>
-              <legend>Additional Regular Destinations (Max 3)</legend>
-              {destinations.map((d) => (
-                <div key={d.id} className="row" data-feature="dest-row" style={{ margin: "4px 0" }}>
-                  <span className="badge">[{d.label}]</span>
-                  <span>{d.name}</span>
+            {/* Segmented Control for Household */}
+            <div className="locus-field">
+              <label htmlFor="household-select" className="locus-field__label">
+                Household Composition
+              </label>
+              <div className="locus-segmented" role="radiogroup" aria-label="Household Composition">
+                {[
+                  { value: "balanced", label: "Balanced / Standard" },
+                  { value: "student", label: "Student / Single" },
+                  { value: "couple", label: "Couple / Dual Income" },
+                  { value: "family", label: "Family with Children" },
+                ].map((opt) => (
                   <button
+                    key={opt.value}
                     type="button"
-                    data-feature="remove-dest-btn"
-                    onClick={() => handleRemoveDestination(d.id)}
+                    role="radio"
+                    aria-checked={householdType === opt.value}
+                    data-feature="household-select"
+                    className={`locus-segmented__btn ${householdType === opt.value ? "locus-segmented__btn--active" : ""}`}
+                    onClick={() => setHouseholdType(opt.value as HouseholdType)}
                   >
-                    Remove
+                    {opt.label}
                   </button>
-                </div>
-              ))}
-
-              {destinations.length < 3 && (
-                <div className="row" style={{ marginTop: "8px" }}>
-                  <input
-                    placeholder="Label (e.g. Gym)"
-                    value={newDestLabel}
-                    onChange={(e) => setNewDestLabel(e.target.value)}
-                    style={{ width: "120px" }}
-                  />
-                  <input
-                    placeholder="Location Name"
-                    value={newDestName}
-                    onChange={(e) => setNewDestName(e.target.value)}
-                    style={{ width: "200px" }}
-                  />
-                  <button type="button" data-feature="add-dest-btn" onClick={handleAddDestination}>
-                    + Add Destination
-                  </button>
-                </div>
-              )}
-            </fieldset>
-          </fieldset>
-        )}
-
-        {/* STEP 3 */}
-        {step === 3 && (
-          <fieldset data-feature="step-3-panel">
-            <legend>Step 3: Budget & Household Profile</legend>
-
-            <div className="row">
-              <div>
-                <label htmlFor="budget-min-input">Min Monthly Rent (₹/mo):</label>
-                <br />
-                <input
-                  id="budget-min-input"
-                  type="number"
-                  data-feature="budget-min-input"
-                  step="1000"
-                  value={budgetMin ?? ""}
-                  placeholder="Optional"
-                  onChange={(e) => setBudgetMin(e.target.value ? Number(e.target.value) : undefined)}
-                />
-              </div>
-
-              <div>
-                <label htmlFor="budget-max-input">Max Monthly Rent (₹/mo):</label>
-                <br />
-                <input
-                  id="budget-max-input"
-                  type="number"
-                  data-feature="budget-max-input"
-                  step="1000"
-                  value={budgetMax}
-                  onChange={(e) => setBudgetMax(Number(e.target.value))}
-                />
+                ))}
               </div>
             </div>
 
-            <div style={{ marginTop: "12px" }}>
-              <label htmlFor="household-select">Household Type:</label>
-              <br />
-              <select
-                id="household-select"
-                data-feature="household-select"
-                value={householdType}
-                onChange={(e) => setHouseholdType(e.target.value as HouseholdType)}
-              >
-                <option value="balanced">Balanced Individual / General</option>
-                <option value="family">Family (Prioritizes Schools, Parks, Healthcare)</option>
-                <option value="couple">Couple (Prioritizes Food, Dining, Leisure)</option>
-                <option value="student">Student (Prioritizes Education, Transit, Budget)</option>
-              </select>
-            </div>
-
-            <div style={{ marginTop: "12px" }}>
-              <label htmlFor="priority-select">Top Priority Focus (Optional):</label>
-              <br />
-              <select
-                id="priority-select"
-                data-feature="priority-select"
-                value={priorityFocus}
-                onChange={(e) => setPriorityFocus(e.target.value as Preferences["priorityFocus"])}
-              >
-                <option value="commute">Shortest Commute</option>
-                <option value="budget">Best Budget Fit</option>
-                <option value="amenities">Rich Daily Amenities</option>
-                <option value="safety">Infrastructure & Well-lit Streets</option>
-                <option value="transit">Public Transit Connectivity</option>
-              </select>
-            </div>
+            <Select
+              label="Priority Focus (Optional)"
+              id="priority-select"
+              data-feature="priority-select"
+              value={priorityFocus ?? "commute"}
+              options={[
+                { value: "commute", label: "Commute Convenience" },
+                { value: "budget", label: "Rent & Budget Fit" },
+                { value: "amenities", label: "Amenity Richness" },
+                { value: "safety", label: "Infrastructure & Safety" },
+                { value: "transit", label: "Transit Connectivity" },
+              ]}
+              onChange={(e) => setPriorityFocus(e.target.value as Preferences["priorityFocus"])}
+            />
           </fieldset>
         )}
 
-        {/* CONTROLS */}
-        <div className="row" style={{ marginTop: "16px", justifyContent: "space-between" }}>
+        {/* Inline validation error (reserved slot, zero layout jump) */}
+        <div className="locus-field__error-slot" aria-live="polite" style={{ minHeight: "1.5rem", marginTop: "var(--space-2)" }}>
+          {errorMsg && (
+            <span role="alert" data-feature="validation-error" style={{ color: "var(--danger)" }}>
+              {errorMsg}
+            </span>
+          )}
+        </div>
+
+        {/* Stepper Navigation Buttons */}
+        <div className="locus-stepper__actions">
           {step > 1 ? (
-            <button type="button" data-feature="step-back-btn" onClick={handleBack}>
-              &larr; Back
-            </button>
-          ) : <div />}
+            <Button
+              type="button"
+              variant="secondary"
+              data-feature="step-back-btn"
+              onClick={handleBack}
+            >
+              Back
+            </Button>
+          ) : (
+            <div />
+          )}
 
           {step < 3 ? (
-            <button type="button" data-feature="step-next-btn" onClick={handleNext}>
-              Next Step &rarr;
-            </button>
+            <Button
+              type="button"
+              variant="primary"
+              data-feature="step-next-btn"
+              onClick={handleNext}
+              arrow
+            >
+              Continue
+            </Button>
           ) : (
-            <button type="submit" data-feature="submit-search-btn" style={{ fontWeight: "bold" }}>
-              Discover & Rank Neighbourhoods &rarr;
-            </button>
+            <Button
+              type="submit"
+              variant="primary"
+              data-feature="submit-search-btn"
+              arrow
+            >
+              Find Neighbourhoods
+            </Button>
           )}
         </div>
       </form>

@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { Button } from "../primitives/Button";
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ export function HomePage() {
       const stored = localStorage.getItem("locus_last_prefs");
       if (stored) setHasCachedSearch(true);
     } catch {
-      // localStorage disabled
+      // localStorage disabled / unavailable
     }
   }, []);
 
@@ -23,29 +24,51 @@ export function HomePage() {
   };
 
   return (
-    <main data-feature="home-screen" data-state="ready" className="box">
-      <header>
-        <h1 data-feature="app-title">Locus</h1>
-        <p data-feature="value-statement">
-          Honest neighbourhood discovery for relocating in India. Transparent commute estimates, real amenity density, and calibrated scoring with zero hidden defaults.
-        </p>
-      </header>
+    <main data-feature="home-screen" data-state="ready" className="locus-home">
+      {/* Decorative line-art motif (<= 6% opacity per §6) */}
+      <svg
+        className="locus-home__motif"
+        viewBox="0 0 200 200"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <circle cx="100" cy="100" r="80" strokeWidth="1" strokeDasharray="4 4" />
+        <circle cx="100" cy="100" r="50" strokeWidth="1" />
+        <line x1="20" y1="100" x2="180" y2="100" strokeWidth="1" />
+        <line x1="100" y1="20" x2="100" y2="180" strokeWidth="1" />
+      </svg>
 
-      <section className="row" style={{ marginTop: "24px" }}>
-        <button data-feature="start-btn" onClick={handleStart} style={{ padding: "8px 16px", fontSize: "16px" }}>
-          Start Neighbourhood Search
-        </button>
+      <span className="locus-home__eyebrow">Relocation Intelligence for India</span>
+
+      <h1 data-feature="app-title" className="locus-home__headline">
+        Find where to live.
+      </h1>
+
+      <p data-feature="value-statement" className="locus-home__supporting">
+        Neighbourhoods ranked by commute, amenities and budget, with the source of every number.
+      </p>
+
+      <div className="locus-home__actions">
+        <Button
+          variant="primary"
+          data-feature="start-btn"
+          onClick={handleStart}
+          arrow
+        >
+          Start
+        </Button>
 
         {hasCachedSearch && (
-          <button data-feature="resume-search-btn" onClick={handleResume} style={{ padding: "8px 16px", fontSize: "16px" }}>
-            Resume Last Search
-          </button>
+          <Button
+            variant="ghost"
+            data-feature="resume-search-btn"
+            onClick={handleResume}
+          >
+            Resume last search
+          </Button>
         )}
-      </section>
-
-      <section style={{ marginTop: "32px", fontSize: "12px", color: "#666" }}>
-        <p>100% Free Public Infrastructure · OpenStreetMap Ecosystem · Direct Client Processing</p>
-      </section>
+      </div>
     </main>
   );
 }

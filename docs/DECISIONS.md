@@ -106,3 +106,10 @@
   - Skeleton loaders are sized to match the final rendered geometry.
   - Automated tests verify `@media (prefers-reduced-motion: reduce)` overrides all transforms and animations.
 
+---
+
+### DEC-013: Accessible Combobox with Abortable Typeahead
+- **Context:** §6 requires accessible place typeahead for city and workplace anchors. Rapid typing can fire overlapping asynchronous geocoding queries resulting in race conditions.
+- **Decision:** Implement WAI-ARIA 1.2 Combobox pattern with explicit `role="combobox"`, `role="listbox"`, and `role="option"`. Keydown handling supports full arrow navigation, Enter selection, and Escape dismissal. Place queries are debounced by 200ms and tied to `AbortController` instances to cancel in-flight network requests on rapid keystrokes.
+
+

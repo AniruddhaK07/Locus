@@ -1,0 +1,197 @@
+/**
+ * Locus App Shell Styles (Header, Footer, Transitions)
+ */
+
+.locus-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg);
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   HEADER
+   ========================================================================== */
+
+.locus-header {
+  border-bottom: var(--border-hairline);
+  background-color: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.locus-header__bar {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.locus-header__brand {
+  display: flex;
+  align-items: center;
+}
+
+.locus-header__logo {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+
+.locus-header__wordmark {
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-semibold);
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.locus-header__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.locus-header__link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 6px 12px;
+  min-height: 44px;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+  transition: color var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.locus-header__link:hover {
+  color: var(--ink);
+  background-color: var(--soft);
+}
+
+.locus-header__link--active {
+  color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+.locus-header__link--dev {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  border: 1px dashed var(--line);
+  padding: 4px 8px;
+  min-height: 32px;
+}
+
+.locus-header__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  border-radius: var(--radius-full);
+  background-color: var(--accent);
+  color: var(--ink);
+}
+
+/* ==========================================================================
+   MAIN CONTENT & ROUTE TRANSITIONS
+   ========================================================================== */
+
+.locus-main-content {
+  flex: 1;
+  max-width: var(--max-width);
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4);
+  animation: locus-route-fade var(--dur-base) var(--ease-out);
+}
+
+@keyframes locus-route-fade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ==========================================================================
+   FOOTER
+   ========================================================================== */
+
+.locus-footer {
+  margin-top: auto;
+  border-top: var(--border-hairline);
+  background-color: var(--surface);
+  padding: var(--space-8) var(--space-4);
+}
+
+.locus-footer__content {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+@media (min-width: 640px) {
+  .locus-footer__content {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+}
+
+.locus-footer__meta {
+  max-width: 50ch;
+}
+
+.locus-footer__statement {
+  font-size: var(--text-xs);
+  color: var(--ink);
+  line-height: var(--leading-base);
+}
+
+.locus-footer__sub {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  margin-top: var(--space-1);
+}
+
+.locus-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.locus-footer__link {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.locus-footer__link:hover {
+  color: var(--ink);
+}
+
+.locus-footer__link--dev {
+  font-family: var(--font-mono);
+}

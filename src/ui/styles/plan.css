@@ -1,0 +1,201 @@
+/**
+ * Locus Plan Stepper Styles (§6)
+ */
+
+.locus-stepper {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--space-4) 0;
+}
+
+/* 3-segment progress indicator */
+.locus-stepper__progress {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.locus-stepper__segment {
+  flex: 1;
+  height: 3px;
+  background-color: var(--line);
+  border-radius: var(--radius-full);
+  transition: background-color var(--dur-base) var(--ease-out);
+}
+
+.locus-stepper__segment--active {
+  background-color: var(--ink);
+}
+
+.locus-stepper__segment--completed {
+  background-color: var(--accent);
+}
+
+.locus-stepper__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: var(--space-4);
+}
+
+.locus-stepper__step-tag {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+}
+
+.locus-stepper__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  color: var(--ink);
+  margin-bottom: var(--space-2);
+}
+
+.locus-stepper__desc {
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  margin-bottom: var(--space-6);
+}
+
+/* Step panel slide/fade */
+.locus-stepper__panel {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  animation: locus-step-enter var(--dur-base) var(--ease-out);
+}
+
+@keyframes locus-step-enter {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Combobox styles */
+.locus-combobox__control-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.locus-combobox__selected-row {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.locus-combobox__dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: var(--surface-raised);
+  border: var(--border-hairline);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-floating);
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 100;
+  list-style: none;
+  padding: var(--space-1);
+}
+
+.locus-combobox__option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.locus-combobox__option:hover,
+.locus-combobox__option--highlighted {
+  background-color: var(--soft);
+}
+
+.locus-combobox__option-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.locus-combobox__option-name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--ink);
+}
+
+.locus-combobox__option-sub {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+}
+
+/* Secondary destinations list */
+.locus-dest-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-2) 0;
+}
+
+.locus-dest-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background-color: var(--surface);
+  border: var(--border-hairline);
+  border-radius: var(--radius-sm);
+}
+
+/* Segmented control for household */
+.locus-segmented {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.locus-segmented__btn {
+  padding: 10px 14px;
+  min-height: 44px;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  text-align: center;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.locus-segmented__btn:hover {
+  background-color: var(--soft);
+  color: var(--ink);
+}
+
+.locus-segmented__btn--active {
+  background-color: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+  font-weight: var(--weight-medium);
+}
+
+/* Stepper navigation bar */
+.locus-stepper__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-8);
+  padding-top: var(--space-4);
+  border-top: var(--border-hairline);
+}
