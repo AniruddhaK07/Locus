@@ -252,13 +252,19 @@ export class SearchPipeline {
             signal
           );
           for (const cand of batchCandidates) {
-            const prof = batchMap.get(cand.id) ?? createUnavailableProfile("Locality omitted from batch result");
+            const rawProf = batchMap.get(cand.id);
+            const prof = (rawProf && rawProf.amenities && rawProf.amenities.healthcare)
+              ? rawProf
+              : createUnavailableProfile("Locality omitted from batch result");
             rawAmenityProfiles.set(cand.id, prof);
           }
           circuitBreaker.recordSuccess();
         } else {
           for (const cand of batchCandidates) {
-            const prof = await this.deps.amenities.getProfile({ lat: cand.lat, lon: cand.lon }, signal);
+            const rawProf = await this.deps.amenities.getProfile({ lat: cand.lat, lon: cand.lon }, signal);
+            const prof = (rawProf && rawProf.amenities && rawProf.amenities.healthcare)
+              ? rawProf
+              : createUnavailableProfile("Locality profiling returned incomplete data");
             rawAmenityProfiles.set(cand.id, prof);
           }
           circuitBreaker.recordSuccess();
@@ -273,7 +279,10 @@ export class SearchPipeline {
       }
 
       // Progressive / Incremental Scoring & Emission (Item 4)
-      const profiledSoFar = candidates.filter((c) => rawAmenityProfiles.has(c.id));
+      const profiledSoFar = candidates.filter((c) => {
+        const p = rawAmenityProfiles.get(c.id);
+        return p && p.amenities && p.amenities.healthcare;
+      });
       if (profiledSoFar.length > 0) {
         const currentAmenityCounts = profiledSoFar.map((c) => rawAmenityProfiles.get(c.id)!.amenities);
         const currentNormalized = normalizeAmenityProfiles(currentAmenityCounts);
@@ -356,7 +365,12 @@ export class SearchPipeline {
     }
 
     // Prepare amenity counts for relative normalization
-    const amenityCountsList = candidates.map((c) => rawAmenityProfiles.get(c.id)!.amenities);
+    const amenityCountsList = candidates.map((c) => {
+      const p = rawAmenityProfiles.get(c.id);
+      return (p && p.amenities && p.amenities.healthcare)
+        ? p.amenities
+        : createUnavailableProfile("Locality omitted").amenities;
+    });
     const normalizedScoresList: NormalizedLocalityScores[] = normalizeAmenityProfiles(amenityCountsList);
 
     const preliminarySummaries: AreaSummary[] = [];
@@ -364,7 +378,7 @@ export class SearchPipeline {
 
     for (let i = 0; i < candidates.length; i++) {
       const cand = candidates[i];
-      const rawProfile = rawAmenityProfiles.get(cand.id)!;
+      const rawProfile = rawAmenityProfiles.get(cand.id) ?? createUnavailableProfile("Locality omitted");
       const normalizedScores = normalizedScoresList[i];
       const commutes = localityCommutes.get(cand.id) ?? [];
       const effectiveCommute = localityEffectiveCommutes.get(cand.id) ?? {

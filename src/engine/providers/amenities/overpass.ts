@@ -452,8 +452,19 @@ export class OverpassAmenityProvider implements AmenityProvider {
     coords: { lat: number; lon: number },
     signal?: AbortSignal
   ): Promise<AmenityProfileResult> {
+    const profileCacheKey = `overpass:amenities:${coords.lat.toFixed(4)},${coords.lon.toFixed(4)}`;
+    const cache = (this.http as unknown as { cache?: { get<T>(k: string): Promise<T | null>; set<T>(k: string, v: T, ttl: number): Promise<void> } }).cache;
+    if (cache) {
+      const cached = await cache.get<unknown>(profileCacheKey);
+      if (cached && typeof cached === "object") {
+        const c = cached as Record<string, unknown>;
+        if (c.amenities) return c as unknown as AmenityProfileResult;
+        if (Array.isArray(c.elements)) return parseAmenityResponse(c);
+      }
+    }
+
     const query = buildAmenityProfileQuery(coords);
-    const cacheKey = `overpass:amenities:${coords.lat.toFixed(4)},${coords.lon.toFixed(4)}`;
+    const rawCacheKey = `overpass:raw_amenities:${coords.lat.toFixed(4)},${coords.lon.toFixed(4)}`;
 
     try {
       const response = await this.http.post<OverpassCountResponse>(
@@ -462,7 +473,7 @@ export class OverpassAmenityProvider implements AmenityProvider {
         `data=${encodeURIComponent(query)}`,
         {
           signal,
-          cacheKey,
+          cacheKey: rawCacheKey,
           cacheTtlMs: CACHE_TTL_AMENITIES_MS,
           queue: this.queue,
           headers: {
@@ -474,7 +485,11 @@ export class OverpassAmenityProvider implements AmenityProvider {
         }
       );
 
-      return parseAmenityResponse(response);
+      const parsed = parseAmenityResponse(response);
+      if (cache && parsed.amenities.healthcare.value !== null) {
+        await cache.set(profileCacheKey, parsed, CACHE_TTL_AMENITIES_MS);
+      }
+      return parsed;
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === "AbortError") {
         throw err;
@@ -500,12 +515,21 @@ export class OverpassAmenityProvider implements AmenityProvider {
     // Check individual cache first
     for (const loc of localities) {
       const cacheKey = `overpass:amenities:${loc.lat.toFixed(4)},${loc.lon.toFixed(4)}`;
-      const cache = (this.http as unknown as { cache?: { get<T>(k: string): Promise<T | null> } }).cache;
+      const rawCacheKey = `overpass:raw_amenities:${loc.lat.toFixed(4)},${loc.lon.toFixed(4)}`;
+      const cache = (this.http as unknown as { cache?: { get<T>(k: string): Promise<T | null>; set<T>(k: string, v: T, ttl: number): Promise<void> } }).cache;
       if (cache) {
-        const cached = await cache.get<AmenityProfileResult>(cacheKey);
-        if (cached) {
-          results.set(loc.id, cached);
-          continue;
+        const cached = (await cache.get<unknown>(cacheKey)) ?? (await cache.get<unknown>(rawCacheKey));
+        if (cached && typeof cached === "object") {
+          const c = cached as Record<string, unknown>;
+          if (c.amenities) {
+            results.set(loc.id, c as unknown as AmenityProfileResult);
+            continue;
+          } else if (Array.isArray(c.elements)) {
+            const parsed = parseAmenityResponse(c);
+            results.set(loc.id, parsed);
+            await cache.set(cacheKey, parsed, CACHE_TTL_AMENITIES_MS);
+            continue;
+          }
         }
       }
       uncached.push(loc);
@@ -547,7 +571,7 @@ export class OverpassAmenityProvider implements AmenityProvider {
 
         for (let j = 0; j < chunk.length; j++) {
           const loc = chunk[j];
-          const prof = parsedBatch[j];
+          const prof = parsedBatch[j] ?? createUnavailableProfile("Locality batch slice missing");
           results.set(loc.id, prof);
 
           if (cache && prof.amenities.healthcare.value !== null) {

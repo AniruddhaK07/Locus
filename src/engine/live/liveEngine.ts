@@ -166,14 +166,15 @@ export class LiveEngine implements Engine {
       })
       .catch((err) => {
         if (!abortController.signal.aborted) {
+          const errMsg = err instanceof Error ? (err.stack ?? err.message) : String(err);
           notify({
             id: searchId,
             stage: "error",
             progress: 0,
-            statusMessage: `Search failure: ${err instanceof Error ? err.message : String(err)}`,
+            statusMessage: `Search failure: ${errMsg}`,
             areas: [],
             totalCandidates: 0,
-            errors: [err instanceof Error ? err.message : String(err)],
+            errors: [errMsg],
             localityErrors: {},
             isComplete: true
           });

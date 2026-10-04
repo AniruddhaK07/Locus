@@ -182,7 +182,15 @@ async function runSmokeForCity(
   const tSearch = Math.round(performance.now() - t5);
   console.log(`  LiveEngine search completed in ${tSearch}ms:`);
   console.log(`    Stage:       ${finalState.stage}`);
+  console.log(`    Status:      ${finalState.statusMessage}`);
+  if (finalState.errors && finalState.errors.length > 0) {
+    console.log(`    Errors:      ${finalState.errors.join("; ")}`);
+  }
   console.log(`    Total Areas: ${finalState.areas.length}`);
+
+  if (finalState.stage === "error") {
+    throw new Error(`LiveEngine search failed: ${finalState.statusMessage}`);
+  }
 
   if (finalState.areas.length > 0) {
     console.log(`\n  Top 3 Ranked Results:`);
