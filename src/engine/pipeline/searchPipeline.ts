@@ -33,6 +33,8 @@ import { computeSafetyIndicator } from "../scoring/safety";
 import { computeHouseholdFit } from "../scoring/household";
 import { scoreArea } from "../scoring/matchScore";
 import { startSearchTiming, recordStageTiming, endSearchTiming } from "../infra/timing";
+import { CircuitBreaker } from "../infra/circuitBreaker";
+import { createUnavailableProfile } from "../providers/amenities/overpass";
 
 export interface PipelineDependencies {
   geocoding: NominatimGeocodingProvider;
@@ -40,6 +42,7 @@ export interface PipelineDependencies {
   routing: OsrmRoutingProvider;
   amenities: OverpassAmenityProvider;
   rent: RentProvider;
+  maxAmenityStageMs?: number;
 }
 
 export interface PipelineExecutionResult {
@@ -207,57 +210,139 @@ export class SearchPipeline {
       }
     }
 
-    // Stage 4: Profiling Amenities
+    // Stage 4: Profiling Amenities (Batched + Circuit Breaker + Incremental Results)
     const tStage4 = performance.now();
     emit("profiling-amenities", 50, "Profiling neighborhood amenities...");
 
     const rawAmenityProfiles: Map<AreaId, AmenityProfileResult> = new Map();
+    const circuitBreaker = new CircuitBreaker({ failureThreshold: 3 });
+    const maxAmenityStageMs = this.deps.maxAmenityStageMs ?? 90_000;
+    const BATCH_SIZE = 4;
 
-    for (let i = 0; i < candidates.length; i++) {
+    for (let i = 0; i < candidates.length; i += BATCH_SIZE) {
       if (signal.aborted) {
         emit("idle", 0, "Search cancelled", [], true);
         return { areas: [], details: new Map() };
       }
 
-      const cand = candidates[i];
-      try {
-        const profile = await this.deps.amenities.getProfile(
-          { lat: cand.lat, lon: cand.lon },
-          signal
-        );
-        rawAmenityProfiles.set(cand.id, profile);
-      } catch (err) {
-        // Failure isolation: record locality error without crashing pipeline
-        localityErrors[cand.id] = `Amenity profiling failed: ${
-          err instanceof Error ? err.message : String(err)
-        }`;
-
-        rawAmenityProfiles.set(cand.id, {
-          amenities: {
-            healthcare: { value: null, source: "unavailable", confidence: "none", note: "Amenity query failed" },
-            education: { value: null, source: "unavailable", confidence: "none", note: "Amenity query failed" },
-            grocery: { value: null, source: "unavailable", confidence: "none", note: "Amenity query failed" },
-            food: { value: null, source: "unavailable", confidence: "none", note: "Amenity query failed" },
-            leisure: { value: null, source: "unavailable", confidence: "none", note: "Amenity query failed" },
-            busStops: { value: null, source: "unavailable", confidence: "none", note: "Amenity query failed" },
-            railStations: { value: null, source: "unavailable", confidence: "none", note: "Amenity query failed" }
-          },
-          safety: {
-            policeCount: { value: null, source: "unavailable", confidence: "none", note: "Safety query failed" },
-            litRoadsCount: { value: null, source: "unavailable", confidence: "none", note: "Safety query failed" },
-            surveillanceCount: { value: null, source: "unavailable", confidence: "none", note: "Safety query failed" },
-            coverageNote: "Query failed"
-          },
-          totalMappedObjects: 0
-        });
+      const elapsed = performance.now() - tStage4;
+      if (elapsed >= maxAmenityStageMs || circuitBreaker.isOpen()) {
+        const reason = circuitBreaker.isOpen()
+          ? "Amenity profiling paused: service rate limit or failure threshold reached"
+          : "Amenity profiling timed out: stage time budget reached";
+        for (let j = i; j < candidates.length; j++) {
+          const cand = candidates[j];
+          localityErrors[cand.id] = reason;
+          rawAmenityProfiles.set(cand.id, createUnavailableProfile(reason));
+        }
+        break;
       }
 
-      const curProgress = 50 + Math.round(((i + 1) / candidates.length) * 35); // 50% -> 85%
+      const batchCandidates = candidates.slice(i, i + BATCH_SIZE);
       emit(
         "profiling-amenities",
-        curProgress,
-        `Profiling amenities (${i + 1}/${candidates.length}): ${cand.name}...`
+        50 + Math.round((i / candidates.length) * 35),
+        `Profiling amenities for ${batchCandidates.map((c) => c.name).join(", ")}...`
       );
+
+      try {
+        if (this.deps.amenities.getBatchProfiles) {
+          const batchMap = await this.deps.amenities.getBatchProfiles(
+            batchCandidates.map((c) => ({ id: c.id, lat: c.lat, lon: c.lon })),
+            signal
+          );
+          for (const cand of batchCandidates) {
+            const prof = batchMap.get(cand.id) ?? createUnavailableProfile("Locality omitted from batch result");
+            rawAmenityProfiles.set(cand.id, prof);
+          }
+          circuitBreaker.recordSuccess();
+        } else {
+          for (const cand of batchCandidates) {
+            const prof = await this.deps.amenities.getProfile({ lat: cand.lat, lon: cand.lon }, signal);
+            rawAmenityProfiles.set(cand.id, prof);
+          }
+          circuitBreaker.recordSuccess();
+        }
+      } catch (err: unknown) {
+        circuitBreaker.recordFailure(err);
+        const errMsg = err instanceof Error ? err.message : String(err);
+        for (const cand of batchCandidates) {
+          localityErrors[cand.id] = `Amenity profiling failed: ${errMsg}`;
+          rawAmenityProfiles.set(cand.id, createUnavailableProfile(errMsg));
+        }
+      }
+
+      // Progressive / Incremental Scoring & Emission (Item 4)
+      const profiledSoFar = candidates.filter((c) => rawAmenityProfiles.has(c.id));
+      if (profiledSoFar.length > 0) {
+        const currentAmenityCounts = profiledSoFar.map((c) => rawAmenityProfiles.get(c.id)!.amenities);
+        const currentNormalized = normalizeAmenityProfiles(currentAmenityCounts);
+
+        const currentSummaries: AreaSummary[] = profiledSoFar.map((cand, idx) => {
+          const rawProfile = rawAmenityProfiles.get(cand.id)!;
+          const normalizedScores = currentNormalized[idx];
+          const commutes = localityCommutes.get(cand.id) ?? [];
+          const effectiveCommute = localityEffectiveCommutes.get(cand.id) ?? {
+            value: null,
+            source: "unavailable",
+            confidence: "none"
+          };
+          const relativeRank = candidates.length > 1 ? idx / (candidates.length - 1) : 0.5;
+          const rentBand = this.deps.rent.getRentEstimate(cand.id, cityResolution.name, relativeRank);
+          const safetyIndicator = computeSafetyIndicator(rawProfile.safety);
+          const householdFit = computeHouseholdFit(prefs.householdType, normalizedScores);
+
+          const primaryCommute = commutes.find((c) => c.destinationId === prefs.workplace.id) ?? commutes[0];
+          const exceedsMaxCommute = primaryCommute?.exceedsMax ?? false;
+
+          const scoreResult = scoreArea({
+            areaName: cand.name,
+            preferences: prefs,
+            effectiveCommute,
+            rentBand,
+            safetyIndicator,
+            amenitiesScore: normalizedScores.amenitiesScore,
+            transitAccessScore: normalizedScores.transitAccessScore,
+            householdFit,
+            exceedsMaxCommute
+          });
+
+          return {
+            id: cand.id,
+            name: cand.name,
+            lat: cand.lat,
+            lon: cand.lon,
+            rank: idx + 1,
+            matchScore: scoreResult.matchScore,
+            confidence: scoreResult.confidence,
+            dataCompleteness: scoreResult.dataCompleteness,
+            explanation: scoreResult.explanation,
+            keyFacts: scoreResult.keyFacts,
+            effectiveCommuteMin: effectiveCommute,
+            rentBand,
+            safetyIndicator,
+            amenitiesScore: normalizedScores.amenitiesScore
+          };
+        });
+
+        // Sort preliminary cards by score descending
+        currentSummaries.sort((a, b) => {
+          if (b.matchScore !== a.matchScore) return b.matchScore - a.matchScore;
+          return (a.effectiveCommuteMin.value ?? 999) - (b.effectiveCommuteMin.value ?? 999);
+        });
+        currentSummaries.forEach((s, rIdx) => {
+          s.rank = rIdx + 1;
+        });
+
+        const curProgress = 50 + Math.round((profiledSoFar.length / candidates.length) * 35);
+        emit(
+          "profiling-amenities",
+          curProgress,
+          `Profiled amenities for ${profiledSoFar.length}/${candidates.length} localities...`,
+          currentSummaries,
+          false
+        );
+      }
     }
     recordStageTiming("profiling-amenities", Math.round(performance.now() - tStage4));
 

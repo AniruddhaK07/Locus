@@ -6,11 +6,21 @@
  * queue wait time vs network time, and which mirror answered.
  */
 
+export type TimingErrorCause =
+  | "CONNECT_TIMEOUT"
+  | "CONNECTION_RESET"
+  | "HTTP_5XX"
+  | "MIRROR_REJECTION"
+  | "CLIENT_ABORT"
+  | "OTHER";
+
 export interface RequestTimingRecord {
   service: "Nominatim" | "Overpass" | "OSRM" | "Photon" | "Other";
   url: string;
   mirror: string;
   status: number | "TIMEOUT" | "ERROR";
+  errorCause?: TimingErrorCause;
+  errorMessage?: string;
   retries: number;
   queueWaitMs: number;
   networkMs: number;
@@ -27,6 +37,7 @@ export interface SearchTimingReport {
   summary: {
     totalRequests: number;
     statusCounts: Record<string, number>;
+    errorCauses: Record<string, number>;
     timeouts: number;
     errors: number;
     totalQueueWaitMs: number;
@@ -68,6 +79,7 @@ export function startSearchTiming(searchId: string): SearchTimingReport {
     summary: {
       totalRequests: 0,
       statusCounts: {},
+      errorCauses: {},
       timeouts: 0,
       errors: 0,
       totalQueueWaitMs: 0,
@@ -110,6 +122,9 @@ export function recordRequestTiming(record: RequestTimingRecord): void {
     if (record.status === "ERROR" || (typeof record.status === "number" && record.status >= 400 && record.status !== 429)) {
       report.summary.errors++;
     }
+    if (record.errorCause) {
+      report.summary.errorCauses[record.errorCause] = (report.summary.errorCauses[record.errorCause] || 0) + 1;
+    }
   }
 
   if (isTimingEnabled()) {
@@ -117,8 +132,9 @@ export function recordRequestTiming(record: RequestTimingRecord): void {
     const netStr = `${record.networkMs}ms`.padStart(7, " ");
     const statusStr = String(record.status).padEnd(7, " ");
     const retriesStr = record.retries > 0 ? ` [retries=${record.retries}, backoff=${record.backoffMs}ms]` : "";
+    const causeStr = record.errorCause ? ` (cause: ${record.errorCause})` : "";
     console.log(
-      `[TIMING] ${record.service.padEnd(10, " ")} | Status: ${statusStr} | Queue: ${queueStr} | Net: ${netStr} | Total: ${record.durationMs}ms | Mirror: ${record.mirror}${retriesStr}`
+      `[TIMING] ${record.service.padEnd(10, " ")} | Status: ${statusStr} | Queue: ${queueStr} | Net: ${netStr} | Total: ${record.durationMs}ms | Mirror: ${record.mirror}${retriesStr}${causeStr}`
     );
   }
 }
@@ -140,6 +156,7 @@ export function endSearchTiming(searchId: string, totalMs: number): SearchTiming
     console.log(`  Request Summary:`);
     console.log(`    - Total Requests:     ${report.summary.totalRequests}`);
     console.log(`    - Status Codes:       ${JSON.stringify(report.summary.statusCounts)}`);
+    console.log(`    - Error Causes:       ${JSON.stringify(report.summary.errorCauses)}`);
     console.log(`    - Timeouts:           ${report.summary.timeouts}`);
     console.log(`    - Total Queue Wait:   ${Math.round(report.summary.totalQueueWaitMs)}ms`);
     console.log(`    - Total Network Time: ${Math.round(report.summary.totalNetworkMs)}ms`);

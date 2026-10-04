@@ -22,4 +22,13 @@ export interface AmenityProvider {
     coords: { lat: number; lon: number },
     signal?: AbortSignal
   ): Promise<AmenityProfileResult>;
+  getBatchProfiles?(
+    localities: Array<{ id: string; lat: number; lon: number }>,
+    signal?: AbortSignal
+  ): Promise<Map<string, AmenityProfileResult>>;
+  getEnvelopeProfiles?(
+    localities: Array<{ id: string; lat: number; lon: number }>,
+    maxAreaKm2?: number,
+    signal?: AbortSignal
+  ): Promise<Map<string, AmenityProfileResult> | null>;
 }

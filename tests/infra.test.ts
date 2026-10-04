@@ -230,5 +230,38 @@ describe("Infrastructure Layer Tests", () => {
         client.request("https://example.com", "/nonexistent", { maxRetries: 1 })
       ).rejects.toThrow(HttpError);
     });
+
+    it("does not fail over to mirrors in the same cluster on 429", async () => {
+      const mirrorUrls = [
+        "https://overpass-api.de/api",
+        "https://z.overpass-api.de/api",
+        "https://lz4.overpass-api.de/api",
+        "https://other-independent-mirror.org/api"
+      ];
+      const calledUrls: string[] = [];
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        calledUrls.push(url);
+        if (url.includes("overpass-api.de")) {
+          return new Response("Too Many Requests", { status: 429, statusText: "Too Many Requests" });
+        }
+        return new Response(JSON.stringify({ mirror: "independent" }), {
+          status: 200,
+          headers: { "content-type": "application/json" }
+        });
+      });
+
+      const client = new HttpClient();
+      const res = await client.request<{ mirror: string }>(
+        { name: "test-mirrors", urls: mirrorUrls },
+        "/interpreter",
+        { maxRetries: 0 }
+      );
+
+      expect(res.mirror).toBe("independent");
+      expect(calledUrls.some((u) => u.includes("overpass-api.de/api"))).toBe(true);
+      expect(calledUrls.some((u) => u.includes("z.overpass-api.de"))).toBe(false);
+      expect(calledUrls.some((u) => u.includes("lz4.overpass-api.de"))).toBe(false);
+      expect(calledUrls.some((u) => u.includes("other-independent-mirror.org"))).toBe(true);
+    });
   });
 });

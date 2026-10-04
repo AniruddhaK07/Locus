@@ -1,6 +1,6 @@
 import type { ResponseCache } from "./cache";
 import type { RateLimitQueue } from "./queue";
-import { recordRequestTiming, type RequestTimingRecord } from "./timing";
+import { recordRequestTiming, type RequestTimingRecord, type TimingErrorCause } from "./timing";
 
 function detectService(url: string, name?: string): RequestTimingRecord["service"] {
   const combined = `${url} ${name || ""}`.toLowerCase();
@@ -9,6 +9,20 @@ function detectService(url: string, name?: string): RequestTimingRecord["service
   if (combined.includes("osrm") || combined.includes("routed-") || combined.includes("project-osrm")) return "OSRM";
   if (combined.includes("photon")) return "Photon";
   return "Other";
+}
+
+export function getClusterKey(urlStr: string): string {
+  try {
+    const parsed = new URL(urlStr);
+    const host = parsed.hostname.toLowerCase();
+    const parts = host.split(".");
+    if (parts.length >= 2) {
+      return parts.slice(-2).join(".");
+    }
+    return host;
+  } catch {
+    return urlStr;
+  }
 }
 
 export interface RequestOptions {
@@ -34,7 +48,8 @@ export class HttpError extends Error {
     public status: number,
     public statusText: string,
     public url: string,
-    public bodySnippet?: string
+    public bodySnippet?: string,
+    public retryAfterSeconds?: number
   ) {
     super(`HTTP ${status} (${statusText}) for ${url}: ${bodySnippet || ""}`);
     this.name = "HttpError";
@@ -142,17 +157,33 @@ export class HttpClient {
           // Check for retryable HTTP errors (429 Too Many Requests or 5xx Server Errors)
           if (res.status === 429 || (res.status >= 500 && res.status <= 504)) {
             const errorText = await res.text().catch(() => "");
+            const retryAfterHeader = res.headers.get("retry-after");
+            const retryAfterSec = retryAfterHeader ? parseInt(retryAfterHeader, 10) : undefined;
+            const cause: TimingErrorCause = res.status === 429 ? "MIRROR_REJECTION" : "HTTP_5XX";
             recordRequestTiming({
               service: detectService(fullUrl, mirrorName),
               url: fullUrl,
               mirror: baseUrl,
               status: res.status,
+              errorCause: cause,
+              errorMessage: errorText.slice(0, 100),
               retries: attempt,
               queueWaitMs: Math.round(queueWaitMs),
               networkMs: netMs,
               durationMs: Math.round(queueWaitMs + netMs + backoffAccumMs),
               backoffMs: backoffAccumMs
             });
+
+            if (res.status === 429) {
+              const delay = !isNaN(Number(retryAfterSec)) && (retryAfterSec ?? 0) > 0
+                ? Math.min((retryAfterSec ?? 0) * 1000, 10000)
+                : 2000;
+              if (attempt < maxRetries) {
+                await new Promise((r) => setTimeout(r, delay));
+                return attemptFetch(attempt + 1, queueWaitMs, backoffAccumMs + delay);
+              }
+              throw new HttpError(res.status, res.statusText, fullUrl, errorText.slice(0, 200), retryAfterSec);
+            }
 
             if (attempt < maxRetries) {
               // Exponential backoff with jitter (0.8 to 1.2)
@@ -166,11 +197,14 @@ export class HttpClient {
 
           if (!res.ok) {
             const errorText = await res.text().catch(() => "");
+            const cause: TimingErrorCause = res.status >= 500 ? "HTTP_5XX" : "MIRROR_REJECTION";
             recordRequestTiming({
               service: detectService(fullUrl, mirrorName),
               url: fullUrl,
               mirror: baseUrl,
               status: res.status,
+              errorCause: cause,
+              errorMessage: errorText.slice(0, 100),
               retries: attempt,
               queueWaitMs: Math.round(queueWaitMs),
               networkMs: netMs,
@@ -218,11 +252,23 @@ export class HttpClient {
         } catch (err) {
           const netMs = Math.round(performance.now() - netStart);
           if (!(err instanceof HttpError)) {
+            let cause: TimingErrorCause = "OTHER";
+            const errMsg = String((err as Error)?.message || err);
+            const errCode = (err as Record<string, unknown>)?.code || (err as { cause?: Record<string, unknown> })?.cause?.code;
+            if (isTimedOut || (err instanceof DOMException && err.name === "AbortError" && !signal?.aborted)) {
+              cause = "CLIENT_ABORT";
+            } else if (errMsg.includes("Connect Timeout") || errCode === "UND_ERR_CONNECT_TIMEOUT") {
+              cause = "CONNECT_TIMEOUT";
+            } else if (errCode === "ECONNRESET" || errMsg.includes("ECONNRESET") || errCode === "ECONNREFUSED" || errMsg.includes("ECONNREFUSED")) {
+              cause = "CONNECTION_RESET";
+            }
             recordRequestTiming({
               service: detectService(fullUrl, mirrorName),
               url: fullUrl,
               mirror: baseUrl,
               status: isTimedOut ? "TIMEOUT" : "ERROR",
+              errorCause: cause,
+              errorMessage: errMsg,
               retries: attempt,
               queueWaitMs: Math.round(queueWaitMs),
               networkMs: netMs,
@@ -245,9 +291,18 @@ export class HttpClient {
     };
 
     // Try primary mirror, fail over to backup mirrors on error
+    const visitedClusters = new Set<string>();
     let lastError: unknown;
     for (let i = 0; i < baseUrls.length; i++) {
       const mirrorIdx = (currentPointer + i) % baseUrls.length;
+      const mirrorUrl = baseUrls[mirrorIdx];
+      const clusterKey = getClusterKey(mirrorUrl);
+
+      // Do NOT fail over within the same cluster on 429
+      if (visitedClusters.has(clusterKey)) {
+        continue;
+      }
+
       try {
         return await executeWithMirror(mirrorIdx);
       } catch (err: unknown) {
@@ -255,6 +310,10 @@ export class HttpClient {
         // If aborted by user, do not fail over to other mirrors
         if (err instanceof DOMException && err.name === "AbortError" && signal?.aborted) {
           throw err;
+        }
+        // If mirror returned 429, mark this cluster so we do not retry inside the same cluster
+        if (err instanceof HttpError && err.status === 429) {
+          visitedClusters.add(clusterKey);
         }
         // If mirror returned 4xx other than 429, it's likely a bad request, not mirror failure
         if (err instanceof HttpError && err.status >= 400 && err.status < 500 && err.status !== 429) {

@@ -5,6 +5,11 @@ import * as path from "node:path";
 import {
   parseAmenityResponse,
   buildAmenityProfileQuery,
+  buildBatchAmenityProfileQuery,
+  parseBatchAmenityResponse,
+  computeLocalitiesBoundingBox,
+  buildEnvelopeAmenityQuery,
+  parseEnvelopeAmenityResponse,
   createUnavailableProfile
 } from "../src/engine/providers/amenities/overpass";
 import { normalizeAmenityProfiles } from "../src/engine/scoring/amenityScores";
@@ -184,5 +189,107 @@ describe("Amenity Relative Normalization & Scoring", () => {
     expect(results[0].categoryScores.grocery.value).not.toBeNull();
     // Transit access is null when both busStops and railStations are null
     expect(results[0].transitAccessScore.value).toBeNull();
+  });
+
+  it("builds combined batch query for up to 4 localities with named sets and counts", () => {
+    const locs = [
+      { lat: 28.6318, lon: 77.2194 },
+      { lat: 28.6335, lon: 77.2236 }
+    ];
+    const query = buildBatchAmenityProfileQuery(locs);
+
+    expect(query).toContain(".health_0");
+    expect(query).toContain(".health_1");
+    expect(query).toContain(".police_0");
+    expect(query).toContain(".police_1");
+    expect(query).toContain(".health_0 out count;");
+    expect(query).toContain(".health_1 out count;");
+  });
+
+  it("parses batch Overpass count responses into separate locality profiles", () => {
+    // 2 localities * 10 counts = 20 count elements
+    const mockElements = [
+      // Locality 0:
+      { type: "count", id: 0, tags: { total: "15" } }, // health
+      { type: "count", id: 0, tags: { total: "10" } }, // education
+      { type: "count", id: 0, tags: { total: "8" } },  // grocery
+      { type: "count", id: 0, tags: { total: "40" } }, // food
+      { type: "count", id: 0, tags: { total: "12" } }, // leisure
+      { type: "count", id: 0, tags: { total: "5" } },  // bus
+      { type: "count", id: 0, tags: { total: "2" } },  // rail
+      { type: "count", id: 0, tags: { total: "3" } },  // police
+      { type: "count", id: 0, tags: { total: "14" } }, // lit
+      { type: "count", id: 0, tags: { total: "1" } },  // surv
+      // Locality 1:
+      { type: "count", id: 0, tags: { total: "5" } },  // health
+      { type: "count", id: 0, tags: { total: "2" } },  // education
+      { type: "count", id: 0, tags: { total: "1" } },  // grocery
+      { type: "count", id: 0, tags: { total: "10" } }, // food
+      { type: "count", id: 0, tags: { total: "3" } },  // leisure
+      { type: "count", id: 0, tags: { total: "1" } },  // bus
+      { type: "count", id: 0, tags: { total: "0" } },  // rail
+      { type: "count", id: 0, tags: { total: "1" } },  // police
+      { type: "count", id: 0, tags: { total: "4" } },  // lit
+      { type: "count", id: 0, tags: { total: "0" } }   // surv
+    ];
+
+    const profiles = parseBatchAmenityResponse({ elements: mockElements }, 2);
+    expect(profiles).toHaveLength(2);
+
+    // Check locality 0
+    expect(profiles[0].amenities.healthcare.value).toBe(15);
+    expect(profiles[0].amenities.food.value).toBe(40);
+    expect(profiles[0].safety.policeCount.value).toBe(3);
+
+    // Check locality 1
+    expect(profiles[1].amenities.healthcare.value).toBe(5);
+    expect(profiles[1].amenities.food.value).toBe(10);
+    expect(profiles[1].amenities.railStations.value).toBe(0);
+    expect(profiles[1].safety.policeCount.value).toBe(1);
+  });
+
+  it("computes locality bounding box area and builds envelope query", () => {
+    const locs = [
+      { lat: 28.6318, lon: 77.2194 },
+      { lat: 28.6482, lon: 77.2154 }
+    ];
+    const { bbox, areaKm2 } = computeLocalitiesBoundingBox(locs, 2.0);
+
+    expect(bbox).toHaveLength(4);
+    expect(bbox[0]).toBeLessThan(bbox[2]); // south < north
+    expect(bbox[1]).toBeLessThan(bbox[3]); // west < east
+    expect(areaKm2).toBeGreaterThan(0);
+    expect(areaKm2).toBeLessThan(100);
+
+    const envQuery = buildEnvelopeAmenityQuery(bbox);
+    expect(envQuery).toContain("out center tags;");
+  });
+
+  it("parses envelope amenity response with local spatial binning", () => {
+    const locs = [
+      { id: "cp", lat: 28.6318, lon: 77.2194 },
+      { id: "pahar", lat: 28.6415, lon: 77.2141 }
+    ];
+
+    const mockElements = [
+      // Hospital near Connaught Place (~100m away)
+      { type: "node", id: 1, lat: 28.632, lon: 77.2195, tags: { amenity: "hospital" } },
+      // Restaurant near Paharganj (~100m away)
+      { type: "node", id: 2, lat: 28.6416, lon: 77.2142, tags: { amenity: "restaurant" } },
+      // Supermarket near Connaught Place (~200m away)
+      { type: "node", id: 3, lat: 28.633, lon: 77.2196, tags: { shop: "supermarket" } }
+    ];
+
+    const map = parseEnvelopeAmenityResponse({ elements: mockElements }, locs);
+    expect(map.size).toBe(2);
+
+    const cpProfile = map.get("cp");
+    expect(cpProfile).toBeDefined();
+    expect(cpProfile?.amenities.healthcare.value).toBe(1);
+    expect(cpProfile?.amenities.grocery.value).toBe(1);
+
+    const paharProfile = map.get("pahar");
+    expect(paharProfile).toBeDefined();
+    expect(paharProfile?.amenities.food.value).toBe(1);
   });
 });
