@@ -2,7 +2,7 @@
 
 **Current Local Time:** 2026-10-04  
 **Current Branch:** `ui`  
-**Current Phase:** Phase U3 Complete — Area Detail & Method Screens  
+**Current Phase:** Phase U4 Complete — Compare & Saved Screens  
 
 ---
 
@@ -16,10 +16,10 @@ If resuming after this checkpoint:
    - Design System: `docs/UI_DESIGN.md`
    - Prompt specs: `docs/UI_MASTER_PROMPT.md`
 3. **Run Health Checks:**
-   - `npm run check` (typecheck, lint, 16 test suites / 145 unit tests, feature ID guard)
+   - `npm run check` (typecheck, lint, 17 test suites / 150 unit tests, feature ID guard)
    - `npm run check:features`
-4. **Current Status:** Phases U0, U1, U2, and U3 are **100% complete, verified, and tagged**.
-5. **Next Target (Phase U4):** Compare screen (`/compare?ids=...`) with side-by-side metric matrix & winner indicators, and Saved Shortlist screen (`/saved`) with persistent state & compare shortcuts.
+4. **Current Status:** Phases U0, U1, U2, U3, and U4 are **100% complete, verified, and tagged**.
+5. **Next Target (Phase U5):** Polish & Production Resilience (responsive audit across 360px/768px/1280px, keyboard navigation audit & focus traps, prefers-reduced-motion verification, mode banners, dev tools gating, skeleton.css complete cleanup).
 
 ---
 
@@ -31,7 +31,7 @@ If resuming after this checkpoint:
 | **U1** | Shell, Home, Plan stepper | **DONE** | Tag `ui-U1` | 14 test suites, 135 tests passed; builds cleanly (1.81s) |
 | **U2** | Results (streaming, cards, refine, compare bar) | **DONE** | Tag `ui-U2` | 15 test suites, 141 tests passed; Playwright visual screenshots captured |
 | **U3** | Area detail and Method | **DONE** | Tag `ui-U3` | 16 test suites, 145 tests passed; Playwright visual screenshots captured |
-| **U4** | Compare and Saved | PENDING | — | — |
+| **U4** | Compare and Saved | **DONE** | Tag `ui-U4` | 17 test suites, 150 tests passed; Playwright visual screenshots captured |
 | **U5** | Polish: responsive, a11y, reduced motion, banners, dev tools | PENDING | — | — |
 | **U6** | Final audit, docs, PR-ready | PENDING | — | — |
 
@@ -106,7 +106,31 @@ If resuming after this checkpoint:
 
 ---
 
-## 5. Contract Feature Preservation Log
+## 5. Phase U4 Detailed Log
+
+- **Compare Screen (`src/ui/pages/ComparePage.tsx`, `src/ui/styles/compare.css`):**
+  - **Header:** Editorial heading in `Fraunces` serif, candidate count subtitle with 3-area maximum guard, and `← Back to Results` button.
+  - **Compare Matrix (`data-feature="compare-matrix"`):** Side-by-side metric comparison table with sticky pinned metric column (`th:first-child`, `td:first-child`) enabling smooth mobile horizontal scrolling without losing metric labels.
+  - **Candidate Column Headers:** Area name, rank pill, match score, and remove candidate button (`data-feature="remove-area-btn"`).
+  - **Metric Comparisons:** Match Score, Peak Commute, Rent Band, Amenities Rating, Safety Infrastructure, and Data Completeness.
+  - **Winner Highlighting:** Clear `[✓ Best]` badges and `.winner` tinted cell backgrounds highlighting the top performer per metric.
+  - **Quick-Add Selector (`data-feature="add-area-selector"`):** Allows picking saved shortlist items directly into the comparison if $< 3$ areas are currently compared.
+  - **Empty State:** Honest guidance when $< 2$ areas are selected, prompting the user to select candidates from Results or Saved.
+
+- **Saved Shortlist Screen (`src/ui/pages/SavedPage.tsx`, `src/ui/styles/saved.css`):**
+  - **Header:** Live count badge, `Compare All →` CTA button (`data-feature="compare-selected-btn"`), `Copy Shortlist Link` button with clipboard integration and accessible `Toast` alert, and `Clear All` action.
+  - **Saved Locality Cards (`data-feature="saved-item-card"`):** Editorial cards showing rank, locality name, match score in `Fraunces`, candid summary sentence, peak commute with provenance badge, estimated rent band, selection checkbox for comparative analysis, and `Remove` / `Details →` actions.
+  - **Empty State:** Informative empty state prompting the user to run a search or return to Results to shortlist localities.
+
+- **Visual Verification & Screenshots:**
+  - `docs/screens/compare-desktop.png` (1280px)
+  - `docs/screens/compare-360.png` (360px)
+  - `docs/screens/saved-desktop.png` (1280px)
+  - `docs/screens/saved-360.png` (360px)
+
+---
+
+## 6. Contract Feature Preservation Log
 
 All contract handles from `UI_CONTRACT.md` maintained and verified:
 - `area-detail-screen`, `area-header`, `back-btn`, `save-toggle-btn`
@@ -116,9 +140,11 @@ All contract handles from `UI_CONTRACT.md` maintained and verified:
 - `safety-panel`, `safety-disclaimer`, `map-placeholder`
 - `portal-links`, `portal-link-btn`
 - `method-screen`, `weights-table`, `radii-table`, `routing-profiles-table`, `confidence-legend`, `limitations-list`
+- `compare-screen`, `compare-matrix`, `remove-area-btn`, `add-area-selector`
+- `saved-screen`, `compare-selected-btn`, `saved-item-card`
 
 ---
 
-## 6. Known Gaps & Engine Notes
+## 7. Known Gaps & Engine Notes
 
-- None. All 16 test suites and 145 tests pass; production bundle builds cleanly.
+- None. All 17 test suites and 150 tests pass; production bundle builds cleanly.

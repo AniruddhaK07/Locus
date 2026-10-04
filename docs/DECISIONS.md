@@ -136,6 +136,8 @@
 - **Context:** Non-technical relocation seekers think in terms of minutes walked rather than abstract meter radii (e.g. 800m vs 1500m).
 - **Decision:** Calculate pedestrian walk times assuming standard 5 km/h walking pace (~12 minutes per kilometer), labeling 500m as ~6 min walk, 800m as ~10 min walk, and 1500m as ~18 min walk alongside the exact Overpass query boundary.
 
+---
 
-
-
+### DEC-018: Sticky Metric Column and Responsive Matrix Comparison
+- **Context:** Comparing multiple candidate localities side-by-side on mobile viewports (e.g., 360px) typically results in either unreadable squished columns or loss of context when scrolling horizontally.
+- **Decision:** Compare matrix uses CSS sticky positioning (`position: sticky; left: 0; background: var(--surface); z-index: 2; border-right: 1px solid var(--line-strong)`) on the metric label column (`th:first-child`, `td:first-child`). On narrow screens, metric titles stay permanently pinned in view while the user swipes smoothly across candidate columns. Best-in-category cells are highlighted with subtle editorial tinting and explicit `[✓ Best]` text badges rather than color-only signifiers.

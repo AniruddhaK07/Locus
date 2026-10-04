@@ -6,6 +6,8 @@ import "./styles/plan.css";
 import "./styles/results.css";
 import "./styles/detail.css";
 import "./styles/method.css";
+import "./styles/compare.css";
+import "./styles/saved.css";
 
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";

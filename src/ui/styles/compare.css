@@ -1,0 +1,192 @@
+/**
+ * Locus Comparison Matrix Styles
+ *
+ * Editorial side-by-side comparison (/compare)
+ * Responsive horizontal scroll with sticky row headers.
+ */
+
+.locus-compare {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-4) var(--space-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  animation: locus-fade-up var(--dur-normal) var(--ease-out);
+}
+
+.locus-compare__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.locus-compare__title {
+  font-family: var(--font-serif);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  margin: 0;
+}
+
+.locus-compare__meta {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+}
+
+/* Comparison Table Container with Horizontal Scroll */
+.locus-compare__table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+
+.locus-compare__table {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-xs);
+  text-align: left;
+}
+
+/* Sticky First Column for Metric Row Headers */
+.locus-compare__table th:first-child,
+.locus-compare__table td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--surface);
+  z-index: 2;
+  width: 180px;
+  min-width: 180px;
+  max-width: 220px;
+  border-right: 1px solid var(--line-strong);
+  box-shadow: 2px 0 6px rgba(44, 42, 46, 0.04);
+}
+
+.locus-compare__table th {
+  background: var(--bg);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line-strong);
+  vertical-align: top;
+  color: var(--ink);
+}
+
+.locus-compare__table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  vertical-align: top;
+}
+
+.locus-compare__table tr:last-child td {
+  border-bottom: none;
+}
+
+.locus-compare__table tr:hover td {
+  background-color: rgba(249, 206, 196, 0.15);
+}
+
+.locus-compare__table tr:hover td:first-child {
+  background-color: var(--surface);
+}
+
+/* Area Column Header */
+.locus-compare__area-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.locus-compare__area-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.locus-compare__area-name {
+  font-family: var(--font-serif);
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.locus-compare__area-name:hover {
+  text-decoration: underline;
+}
+
+.locus-compare__remove-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--ink-muted);
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+
+.locus-compare__remove-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: rgba(168, 74, 54, 0.1);
+}
+
+/* Winner Cell & Badge */
+.locus-compare__table td.winner {
+  background-color: rgba(247, 168, 161, 0.18);
+  font-weight: 500;
+}
+
+.locus-compare__winner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  margin-left: var(--space-2);
+}
+
+/* Cell content formatting */
+.locus-compare__val-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: var(--space-1);
+}
+
+/* Add Area from Saved Drawer */
+.locus-compare__add-section {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+}

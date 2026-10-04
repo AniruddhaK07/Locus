@@ -106,6 +106,38 @@ async function main() {
   await pageMobile.screenshot({ path: path.join(outDir, "method-360.png"), fullPage: true });
   console.log("✓ Captured method-360.png");
 
+  // 9. Compare screen desktop & mobile (/compare?ids=node%2F429918282,relation%2F19883335,way%2F88219472)
+  const compareUrl = `${baseUrl}/compare?ids=node%2F429918282,relation%2F19883335,way%2F88219472`;
+  await pageDesktop.goto(compareUrl, { waitUntil: "domcontentloaded" });
+  await pageDesktop.waitForTimeout(700);
+  await pageDesktop.screenshot({ path: path.join(outDir, "compare-desktop.png"), fullPage: true });
+  console.log("✓ Captured compare-desktop.png");
+
+  await pageMobile.goto(compareUrl, { waitUntil: "domcontentloaded" });
+  await pageMobile.waitForTimeout(700);
+  await pageMobile.screenshot({ path: path.join(outDir, "compare-360.png"), fullPage: true });
+  console.log("✓ Captured compare-360.png");
+
+  // 10. Saved screen desktop & mobile (/saved)
+  // Pre-seed localStorage with saved areas
+  await pageDesktop.evaluate(() => {
+    window.localStorage.setItem("locus_saved_areas", JSON.stringify(["node/429918282", "relation/19883335", "way/88219472"]));
+  });
+  await pageMobile.evaluate(() => {
+    window.localStorage.setItem("locus_saved_areas", JSON.stringify(["node/429918282", "relation/19883335", "way/88219472"]));
+  });
+
+  const savedUrl = `${baseUrl}/saved`;
+  await pageDesktop.goto(savedUrl, { waitUntil: "domcontentloaded" });
+  await pageDesktop.waitForTimeout(700);
+  await pageDesktop.screenshot({ path: path.join(outDir, "saved-desktop.png"), fullPage: true });
+  console.log("✓ Captured saved-desktop.png");
+
+  await pageMobile.goto(savedUrl, { waitUntil: "domcontentloaded" });
+  await pageMobile.waitForTimeout(700);
+  await pageMobile.screenshot({ path: path.join(outDir, "saved-360.png"), fullPage: true });
+  console.log("✓ Captured saved-360.png");
+
   await browser.close();
   console.log("All screenshots captured successfully.");
 }
