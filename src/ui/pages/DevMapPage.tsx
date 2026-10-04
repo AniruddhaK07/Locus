@@ -22,7 +22,8 @@ export function DevMapPage() {
     { path: "/compare?ids=node%2F429918282,relation%2F19883335", name: "Side-by-Side Compare", desc: "Compare Koramangala vs Indiranagar with per-row winner marker" },
     { path: "/saved", name: "Saved Localities", desc: "Shortlisted areas list with compare-selected trigger" },
     { path: "/method", name: "How It Works (Methodology)", desc: "Public weights, radii, routing availability, confidence legend, limitations" },
-    { path: "/_map", name: "Dev Route Map & Catalog", desc: "This directory of all screens, feature IDs, and scenarios" }
+    { path: "/_map", name: "Dev Route Map & Catalog", desc: "This directory of all screens, feature IDs, and scenarios" },
+    { path: "/primitives", name: "Primitives Showcase", desc: "Dev-only showcase of all Phase U0 design primitives and states" }
   ];
 
   const features = [

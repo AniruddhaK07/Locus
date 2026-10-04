@@ -72,6 +72,31 @@ Users specify a city, a workplace, up to 3 regular destinations, a budget range,
 
 ---
 
+## UI Presentation Layer
+
+The Locus presentation layer (`src/ui/`) is a minimalist, magazine-editorial interface adhering to strict honesty rules:
+- **Design Tokens:** All visual values are defined in `src/ui/styles/tokens.css` with WCAG 2.2 AA contrast compliance.
+- **Typography:** Self-hosted `Fraunces` (serif) and `Inter` (sans) via `@fontsource/*` with zero external runtime CDN dependencies.
+- **Engine Modes:**
+  - `mock`: Default for rapid UI development (`VITE_ENGINE_MODE=mock`). Renders a quiet "Sample data" banner.
+  - `snapshot`: Recorded live data sessions (`VITE_ENGINE_MODE=snapshot`). Renders "Recorded demo data · captured {date}".
+  - `live`: Live OpenStreetMap network querying (`VITE_ENGINE_MODE=live`). No banner.
+- **Dev Tools:**
+  - Route Catalog: `/_map` lists every screen, mock scenario toggles, and all 65+ feature IDs.
+  - Primitives Showcase: `/primitives` demonstrates every UI primitive in every state (loading, disabled, error, etc.).
+- **Contract & Feature ID Guard:**
+  ```bash
+  npm run check:features
+  ```
+  Renders screens in mock mode and verifies that all `data-feature` contract handles remain intact.
+- **Building UI:**
+  ```bash
+  npm run build
+  ```
+
+
+---
+
 ## 3-Minute Demo Walkthrough
 
 See **[`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md)** for a complete 3-minute honest walkthrough covering:

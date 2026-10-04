@@ -11,6 +11,7 @@ import { ComparePage } from "./pages/ComparePage";
 import { SavedPage } from "./pages/SavedPage";
 import { MethodPage } from "./pages/MethodPage";
 import { DevMapPage } from "./pages/DevMapPage";
+import { PrimitivesPage } from "./pages/PrimitivesPage";
 
 export function App() {
   return (
@@ -32,6 +33,7 @@ export function App() {
           <Route path="/saved" element={<SavedPage />} />
           <Route path="/method" element={<MethodPage />} />
           <Route path="/_map" element={<DevMapPage />} />
+          <Route path="/primitives" element={<PrimitivesPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
 

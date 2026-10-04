@@ -9,10 +9,13 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest run",
+    "check:features": "vitest run tests/featureGuard.test.tsx",
     "check": "tsc --noEmit && eslint . && vitest run",
     "smoke": "tsx scripts/smoke.ts"
   },
   "dependencies": {
+    "@fontsource/fraunces": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.0"

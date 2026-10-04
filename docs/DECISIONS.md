@@ -89,3 +89,20 @@
   2. `snapshot`: Authentic recorded responses captured from live runs with verified `fetchedAt` timestamps for Delhi, Bengaluru, and Pune.
   3. `live`: Real-time querying of Nominatim, Overpass API, and OSRM with queue management and error isolation.
   Mode switching requires zero changes to UI components.
+
+---
+
+### DEC-011: Self-Hosted Font Delivery via `@fontsource`
+- **Context:** §2.4 forbids external CDN font or script requests at runtime. The design system requires refined serif display typography and clean neutral sans body typography.
+- **Decision:** Use `@fontsource/fraunces` (serif) and `@fontsource/inter` (sans). Subset strictly to Latin files bundled directly by Vite with `font-display: swap`. Zero external runtime network requests.
+
+---
+
+### DEC-012: CSS-First Motion & Zero-CLS Form Architecture
+- **Context:** §4.4 requires subtle, magazine-like motion without layout shift or UI jank. Form field validation should not shift lower content when errors trigger.
+- **Decision:**
+  - Restrict animation properties to `transform` and `opacity` with CSS custom property easing curves.
+  - Form fields reserve a dedicated min-height error line slot, preventing layout jumps when validation states change.
+  - Skeleton loaders are sized to match the final rendered geometry.
+  - Automated tests verify `@media (prefers-reduced-motion: reduce)` overrides all transforms and animations.
+
