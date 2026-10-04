@@ -112,4 +112,17 @@
 - **Context:** §6 requires accessible place typeahead for city and workplace anchors. Rapid typing can fire overlapping asynchronous geocoding queries resulting in race conditions.
 - **Decision:** Implement WAI-ARIA 1.2 Combobox pattern with explicit `role="combobox"`, `role="listbox"`, and `role="option"`. Keydown handling supports full arrow navigation, Enter selection, and Escape dismissal. Place queries are debounced by 200ms and tied to `AbortController` instances to cancel in-flight network requests on rapid keystrokes.
 
+---
+
+### DEC-014: Single-Column Reading-Width Results Layout & Responsive Desktop Map Split
+- **Context:** User instruction mandated single-column candidate list at comfortable reading width (~760px) rather than a multi-column grid, ensuring clear rank order and calm progressive streaming during progressive search. Map view on desktop displays side-by-side with the candidate list only when toggled on wide viewports.
+- **Decision:** Default results layout is a centered single-column feed capped at 760px. When the user toggles "Map" view mode on viewports $\ge 1024$px, the layout smoothly splits into a 2-column view with the candidate feed on the left (540px) and a sticky interactive map container on the right (1fr).
+
+---
+
+### DEC-015: Dev Playwright Harness for Visual Regression & Honest Rendering Verification
+- **Context:** User instruction required verifying real browser screenshots at 360px and 1280px across normal, slow, partial, and sparse-data scenarios into `docs/screens/`, without adding runtime overhead.
+- **Decision:** Installed `playwright` strictly as a `devDependency` (zero production bundle cost). Authored `scripts/captureScreens.ts` to spin up headless Chromium, set localStorage mock scenarios, navigate responsive viewports, and capture authentic PNG screenshots into `docs/screens/`. Also verifies honest error states, null handling, and zero browser console errors.
+
+
 

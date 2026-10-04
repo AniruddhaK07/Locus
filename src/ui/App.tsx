@@ -3,6 +3,7 @@ import "./skeleton.css";
 import "./styles/shell.css";
 import "./styles/home.css";
 import "./styles/plan.css";
+import "./styles/results.css";
 
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";

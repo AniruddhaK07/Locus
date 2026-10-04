@@ -35,6 +35,19 @@ describe("Phase U1: Plan Stepper & Query Contract (§6)", () => {
     const query = engine.prefsToQuery(prefs);
     expect(query).toBeTruthy();
 
+    // Verify exact wireframe query param names (city, wpName, wpLat, wpLon, mode, maxCommute, budgetMax, budgetMin, household, priority)
+    const params = new URLSearchParams(query);
+    expect(params.get("city")).toBe("Bengaluru");
+    expect(params.get("wpName")).toBe("Manyata Tech Park");
+    expect(params.get("wpLat")).toBe("13.0489");
+    expect(params.get("wpLon")).toBe("77.62");
+    expect(params.get("mode")).toBe("car");
+    expect(params.get("maxCommute")).toBe("45");
+    expect(params.get("budgetMin")).toBe("25000");
+    expect(params.get("budgetMax")).toBe("55000");
+    expect(params.get("household")).toBe("balanced");
+    expect(params.get("priority")).toBe("commute");
+
     const parsed = engine.queryToPrefs(query);
     expect(parsed).not.toBeNull();
     expect(parsed?.city).toBe("Bengaluru");

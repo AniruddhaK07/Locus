@@ -50,6 +50,11 @@ import { DevMapPage } from "../src/ui/pages/DevMapPage";
 import { PrimitivesPage } from "../src/ui/pages/PrimitivesPage";
 import { ScenarioSwitcher } from "../src/ui/components/ScenarioSwitcher";
 
+function readComponentSource(fileName: string): string {
+  const filePath = path.resolve(__dirname, "../src/ui/components", fileName);
+  return fs.readFileSync(filePath, "utf-8");
+}
+
 function readPageSource(fileName: string): string {
   const filePath = path.resolve(__dirname, "../src/ui/pages", fileName);
   return fs.readFileSync(filePath, "utf-8");
@@ -84,7 +89,10 @@ describe("UI Contract Feature ID Guard (check:features)", () => {
   });
 
   it("verifies Screen 2: Plan (/plan) features across all 3 steps", () => {
-    const src = readPageSource("PlanPage.tsx");
+    const src = [
+      readPageSource("PlanPage.tsx"),
+      readComponentSource("Combobox.tsx"),
+    ].join("\n");
     assertFeaturesInSource(
       src,
       [
@@ -119,7 +127,13 @@ describe("UI Contract Feature ID Guard (check:features)", () => {
   });
 
   it("verifies Screen 3: Results (/results) controls and card features", () => {
-    const src = readPageSource("ResultsPage.tsx");
+    const src = [
+      readPageSource("ResultsPage.tsx"),
+      readComponentSource("AreaCard.tsx"),
+      readComponentSource("PipelineProgress.tsx"),
+      readComponentSource("RefineDisclosure.tsx"),
+      readComponentSource("CompareStickyBar.tsx"),
+    ].join("\n");
     assertFeaturesInSource(
       src,
       [

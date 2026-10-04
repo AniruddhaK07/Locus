@@ -1,27 +1,66 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import type { AreaId, Preferences, SearchState, SortOption } from "@engine";
+import type { AreaId, Preferences, SearchState, SortOption, TransportMode, HouseholdType } from "@engine";
 import { getEngine, selectAreas } from "@engine";
-import { ProvenanceBadge } from "../components/ProvenanceBadge";
+import { AreaCard } from "../components/AreaCard";
+import { PipelineProgress } from "../components/PipelineProgress";
+import { RefineDisclosure } from "../components/RefineDisclosure";
+import { CompareStickyBar } from "../components/CompareStickyBar";
+import { Button } from "../primitives/Button";
+import { Card } from "../primitives/Card";
+import { Skeleton } from "../primitives/Skeleton";
+import { Toast } from "../primitives/Toast";
+import { EmptyState } from "../primitives/EmptyState";
+import { ErrorState } from "../primitives/ErrorState";
+import { formatCurrency } from "../utils/format";
 
 export function ResultsPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const engine = getEngine();
 
-  // Parse prefs from URL or defaults
+  // Parse preferences from URL query string or fall back to sensible defaults
   const prefs: Preferences = useMemo(() => {
     const parsed = engine.queryToPrefs(searchParams.toString());
     if (parsed) return parsed;
+
+    const rawMode = searchParams.get("mode");
+    const mode: TransportMode = rawMode === "bike" || rawMode === "walk" ? rawMode : "car";
+
+    const rawHousehold = searchParams.get("household");
+    const household: HouseholdType =
+      rawHousehold === "student" ||
+      rawHousehold === "couple" ||
+      rawHousehold === "family"
+        ? rawHousehold
+        : "balanced";
+
+    const rawPriority = searchParams.get("priority");
+    const priority: Preferences["priorityFocus"] =
+      rawPriority === "commute" ||
+      rawPriority === "budget" ||
+      rawPriority === "amenities" ||
+      rawPriority === "safety" ||
+      rawPriority === "transit"
+        ? rawPriority
+        : "commute";
+
     return {
-      city: "Bengaluru",
-      workplace: { id: "wp", label: "Workplace", name: "Manyata Tech Park", lat: 13.0489, lon: 77.6200 },
+      city: searchParams.get("city") || "Bengaluru",
+      workplace: {
+        id: "wp",
+        label: "Workplace",
+        name: searchParams.get("wpName") || "Manyata Tech Park",
+        lat: Number(searchParams.get("wpLat")) || 13.0489,
+        lon: Number(searchParams.get("wpLon")) || 77.62,
+      },
       destinations: [],
-      transportMode: "car",
-      maxCommuteMin: 45,
-      budgetMin: 20000,
-      budgetMax: 60000,
-      householdType: "balanced"
+      transportMode: mode,
+      maxCommuteMin: Number(searchParams.get("maxCommute")) || 45,
+      budgetMin: Number(searchParams.get("budgetMin")) || 20000,
+      budgetMax: Number(searchParams.get("budgetMax")) || 60000,
+      householdType: household,
+      priorityFocus: priority,
     };
   }, [searchParams, engine]);
 
@@ -33,7 +72,7 @@ export function ResultsPage() {
     areas: [],
     totalCandidates: 0,
     errors: [],
-    isComplete: false
+    isComplete: false,
   });
 
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
@@ -42,9 +81,15 @@ export function ResultsPage() {
   const [filterMinMatch, setFilterMinMatch] = useState<number>(0);
   const [filterHideLowConfidence, setFilterHideLowConfidence] = useState(false);
   const [selectedForCompare, setSelectedForCompare] = useState<AreaId[]>([]);
-  const [savedIds, setSavedIds] = useState<AreaId[]>(engine.saved.list());
-  const [visibleCount, setVisibleCount] = useState<number>(12);
-  const [shareCopied, setShareCopied] = useState(false);
+  const [savedIds, setSavedIds] = useState<AreaId[]>(() => engine.saved.list());
+  const [visibleCount, setVisibleCount] = useState<number>(10);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [searchTrigger, setSearchTrigger] = useState(0);
+
+  // Sync filterMaxCommute if user navigates with new query params
+  useEffect(() => {
+    setFilterMaxCommute(prefs.maxCommuteMin);
+  }, [prefs.maxCommuteMin]);
 
   // Subscribe to saved store
   useEffect(() => {
@@ -53,7 +98,7 @@ export function ResultsPage() {
     });
   }, [engine]);
 
-  // Execute search progression
+  // Execute progressive search pipeline
   useEffect(() => {
     const handle = engine.startSearch(prefs);
     const unsub = handle.subscribe((state) => {
@@ -61,322 +106,321 @@ export function ResultsPage() {
     });
 
     const handleScenarioChange = () => {
-      // Re-trigger search when scenario switcher flips
       handle.cancel();
       const newHandle = engine.startSearch(prefs);
       newHandle.subscribe((s) => setSearchState(s));
     };
 
-    window.addEventListener("locus_scenario_change", handleScenarioChange);
+    if (typeof window !== "undefined") {
+      window.addEventListener("locus_scenario_change", handleScenarioChange);
+    }
 
     return () => {
       handle.cancel();
       unsub();
-      window.removeEventListener("locus_scenario_change", handleScenarioChange);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("locus_scenario_change", handleScenarioChange);
+      }
     };
-  }, [prefs, engine]);
+  }, [prefs, engine, searchTrigger]);
 
-  // Sort and filter areas using pure engine function
+  // Sort and filter candidate areas using pure engine function
   const filteredAreas = useMemo(() => {
     return selectAreas(searchState.areas, {
       sort: sortBy,
       filters: {
         maxCommuteMin: filterMaxCommute,
         minMatchScore: filterMinMatch,
-        hideLowConfidence: filterHideLowConfidence
-      }
+        hideLowConfidence: filterHideLowConfidence,
+      },
     });
   }, [searchState.areas, sortBy, filterMaxCommute, filterMinMatch, filterHideLowConfidence]);
 
   const displayedAreas = filteredAreas.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredAreas.length;
 
-  const toggleCompare = (id: AreaId) => {
-    if (selectedForCompare.includes(id)) {
-      setSelectedForCompare(selectedForCompare.filter((item) => item !== id));
-    } else {
-      if (selectedForCompare.length >= 3) {
-        alert("Maximum 3 areas can be compared side by side.");
-        return;
+  const handleToggleSave = useCallback(
+    (id: AreaId) => {
+      engine.saved.toggle(id);
+    },
+    [engine]
+  );
+
+  const handleToggleCompare = useCallback((id: AreaId) => {
+    setSelectedForCompare((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((item) => item !== id);
       }
-      setSelectedForCompare([...selectedForCompare, id]);
+      if (prev.length >= 3) {
+        return prev;
+      }
+      return [...prev, id];
+    });
+  }, []);
+
+  const handleClearCompare = () => {
+    setSelectedForCompare([]);
+  };
+
+  const handleCompare = () => {
+    if (selectedForCompare.length >= 2) {
+      navigate(`/compare?ids=${selectedForCompare.join(",")}`);
     }
   };
 
-  const handleCopyShareLink = () => {
-    const url = window.location.href;
-    navigator.clipboard?.writeText(url);
-    setShareCopied(true);
-    setTimeout(() => setShareCopied(false), 2000);
+  const handleCopyLink = () => {
+    if (typeof window !== "undefined") {
+      navigator.clipboard?.writeText(window.location.href);
+      setToastMessage("Link copied to clipboard");
+    }
   };
 
-  // Determine current screen state
-  const screenState = !searchState.isComplete
-    ? "loading"
-    : searchState.stage === "error"
-    ? "error"
-    : searchState.errors.length > 0 && searchState.areas.length > 0
-    ? "partial"
-    : filteredAreas.length === 0
-    ? "empty"
-    : "ready";
+  const handleRetrySearch = () => {
+    setSearchTrigger((prev) => prev + 1);
+  };
+
+  // Determine current screen state for integration inspection
+  let screenState: "loading" | "ready" | "partial" | "empty" | "error" | "sparse-data" = "ready";
+  if (searchState.stage === "error" || (searchState.errors && searchState.errors.length > 0 && searchState.areas.length === 0)) {
+    screenState = "error";
+  } else if (!searchState.isComplete && searchState.areas.length === 0) {
+    screenState = "loading";
+  } else if (searchState.isComplete && searchState.areas.length === 0) {
+    screenState = "empty";
+  } else if (searchState.localityErrors && Object.keys(searchState.localityErrors).length > 0) {
+    screenState = "partial";
+  } else if (
+    searchState.areas.length > 0 &&
+    searchState.areas.every((a) => a.dataCompleteness < 0.6)
+  ) {
+    screenState = "sparse-data";
+  }
+
+  const isMapActive = viewMode === "map";
 
   return (
-    <main data-feature="results-screen" data-state={screenState} className="box">
-      {/* 1. PREFERENCES SUMMARY HEADER */}
-      <header className="box" data-feature="prefs-summary">
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <div>
-            <strong>Search:</strong> {prefs.city} · Workplace: {prefs.workplace.name} · Mode: {prefs.transportMode} · Max: {prefs.maxCommuteMin}m · Budget: ₹{prefs.budgetMax.toLocaleString("en-IN")}
-            {prefs.destinations.length > 0 && (
-              <span> · +{prefs.destinations.length} destinations</span>
-            )}
-          </div>
-          <div className="row">
-            <button data-feature="edit-prefs-btn" onClick={() => navigate("/plan")}>
-              Edit Preferences
-            </button>
-            <button data-feature="copy-share-btn" onClick={handleCopyShareLink}>
-              {shareCopied ? "✓ Copied!" : "Copy Share Link"}
-            </button>
+    <main
+      data-feature="results-screen"
+      data-state={screenState}
+      className="locus-results"
+    >
+      {/* 1. TOP PREFERENCES SUMMARY BAR */}
+      <section className="locus-results__summary-bar" data-feature="prefs-summary">
+        <div className="locus-results__summary-content">
+          <span className="locus-results__summary-title">{prefs.city}</span>
+          <span>· Near {prefs.workplace.name}</span>
+          <div className="locus-results__summary-pills">
+            <span>({prefs.transportMode}, max {prefs.maxCommuteMin}m, {formatCurrency(prefs.budgetMax)}/mo)</span>
           </div>
         </div>
-      </header>
 
-      {/* 2. PIPELINE PROGRESS PANEL */}
-      <section
-        className="box"
-        data-feature="pipeline-progress-panel"
-        data-state={!searchState.isComplete ? "loading" : searchState.stage === "error" ? "error" : "ready"}
-      >
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <strong>Pipeline Status: [{searchState.stage}]</strong>
-          <span>Progress: {searchState.progress}%</span>
+        <div className="locus-results__summary-actions">
+          <Button
+            variant="ghost"
+            size="sm"
+            data-feature="copy-share-btn"
+            onClick={handleCopyLink}
+          >
+            Copy link
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
+            data-feature="edit-prefs-btn"
+            onClick={() => navigate("/plan")}
+          >
+            Edit
+          </Button>
         </div>
-        <p style={{ margin: "4px 0", fontSize: "13px" }}>{searchState.statusMessage}</p>
+      </section>
 
-        {/* Stage step indicators */}
-        <div className="row" style={{ fontSize: "11px", margin: "6px 0" }}>
-          {["resolving-city", "discovering-localities", "routing", "profiling-amenities", "scoring", "done"].map((st) => (
-            <span
-              key={st}
-              data-feature="stage-item"
-              data-stage={st}
-              className={`badge ${searchState.stage === st ? "winner" : ""}`}
-            >
-              {st}
+      {/* 2. PROGRESSIVE PIPELINE PROGRESS LINE & STATUS */}
+      <PipelineProgress
+        stage={searchState.stage}
+        progress={searchState.progress}
+        statusMessage={searchState.statusMessage}
+        isComplete={searchState.isComplete}
+      />
+
+      {/* Partial failure notice if Overpass rate-limits occurred */}
+      {screenState === "partial" && searchState.localityErrors && (
+        <aside
+          role="status"
+          className="locus-field"
+          style={{
+            padding: "8px 14px",
+            backgroundColor: "rgba(247, 168, 161, 0.2)",
+            border: "1px solid var(--line-strong)",
+            borderRadius: "var(--radius-sm)",
+            fontSize: "var(--text-xs)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>
+              <strong>Partial Search Note:</strong> {Object.keys(searchState.localityErrors).length} localities could not be verified due to server rate limits.
             </span>
-          ))}
-        </div>
-
-        {searchState.errors.length > 0 && (
-          <div className="error-msg" data-feature="pipeline-errors">
-            {searchState.errors.map((err, i) => (
-              <div key={i}>⚠ {err}</div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* 3. TOOLBAR CONTROLS (Sort, View Mode, Filters) */}
-      <section className="row" style={{ justifyContent: "space-between", margin: "12px 0" }}>
-        <div className="row">
-          <label htmlFor="sort-select">Sort by:</label>
-          <select
-            id="sort-select"
-            data-feature="sort-select"
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as "match" | "commute" | "amenities" | "rent")}
-          >
-            <option value="match">Match Score (Highest first)</option>
-            <option value="commute">Commute Time (Shortest first)</option>
-            <option value="amenities">Amenities Access (Densest first)</option>
-            <option value="rent">Rent Band (Lowest first)</option>
-          </select>
-
-          <button
-            data-feature="view-toggle"
-            onClick={() => setViewMode(viewMode === "list" ? "map" : "list")}
-            style={{ marginLeft: "12px" }}
-          >
-            Switch to {viewMode === "list" ? "Map View" : "List View"}
-          </button>
-        </div>
-
-        <div>
-          Showing {displayedAreas.length} of {filteredAreas.length} localities
-        </div>
-      </section>
-
-      {/* 4. FILTERS PANEL */}
-      <fieldset data-feature="filter-panel">
-        <legend>Filters & Refinements</legend>
-        <div className="row">
-          <div>
-            <label htmlFor="filter-commute">Max Commute: {filterMaxCommute}m</label>
-            <input
-              id="filter-commute"
-              type="range"
-              data-feature="filter-max-commute"
-              min="15"
-              max="120"
-              value={filterMaxCommute}
-              onChange={(e) => setFilterMaxCommute(Number(e.target.value))}
-            />
-          </div>
-
-          <div style={{ marginLeft: "16px" }}>
-            <label htmlFor="filter-match">Min Match: {filterMinMatch}%</label>
-            <input
-              id="filter-match"
-              type="range"
-              data-feature="filter-min-match"
-              min="0"
-              max="95"
-              value={filterMinMatch}
-              onChange={(e) => setFilterMinMatch(Number(e.target.value))}
-            />
-          </div>
-
-          <div style={{ marginLeft: "16px" }}>
-            <label>
-              <input
-                type="checkbox"
-                data-feature="filter-hide-low-conf"
-                checked={filterHideLowConfidence}
-                onChange={(e) => setFilterHideLowConfidence(e.target.checked)}
-              />
-              Hide Low Confidence Data
-            </label>
-          </div>
-        </div>
-      </fieldset>
-
-      {/* 5. MAP PLACEHOLDER (When Map View active) */}
-      {viewMode === "map" && (
-        <section data-feature="map-placeholder" className="map-box">
-          <div style={{ textAlign: "center" }}>
-            <strong>[MAP VIEW PLACEHOLDER]</strong>
-            <p>Interactive Leaflet map displaying {displayedAreas.length} locality markers and commute corridors.</p>
-          </div>
-        </section>
-      )}
-
-      {/* 6. AREA CARDS / LIST */}
-      {viewMode === "list" && (
-        <section data-feature="area-list" className="grid" style={{ marginTop: "16px" }}>
-          {displayedAreas.map((area) => (
-            <article
-              key={area.id}
-              className="box"
-              data-feature="area-card"
-              data-area-id={area.id}
-            >
-              <div className="row" style={{ justifyContent: "space-between" }}>
-                <span className="badge" data-feature="area-rank">Rank #{area.rank}</span>
-                <span className="badge winner" data-feature="match-score">{area.matchScore}% Match</span>
-              </div>
-
-              <h3 data-feature="area-name" style={{ margin: "8px 0 4px" }}>
-                {area.name}
-              </h3>
-
-              <div className="row" style={{ margin: "4px 0" }}>
-                <ProvenanceBadge
-                  source={area.effectiveCommuteMin.source}
-                  confidence={area.confidence}
-                  note={area.effectiveCommuteMin.note}
-                />
-                <span style={{ fontSize: "11px", color: "#666" }}>
-                  Data completeness: {Math.round(area.dataCompleteness * 100)}%
-                </span>
-              </div>
-
-              <p style={{ fontSize: "12px", fontStyle: "italic", margin: "6px 0" }}>
-                {area.explanation}
-              </p>
-
-              <ul data-feature="key-facts" style={{ paddingLeft: "20px", fontSize: "12px", margin: "6px 0" }}>
-                {area.keyFacts.map((fact, idx) => (
-                  <li key={idx}>{fact}</li>
-                ))}
-              </ul>
-
-              <div className="row" style={{ justifyContent: "space-between", marginTop: "12px" }}>
-                <label style={{ fontSize: "12px" }}>
-                  <input
-                    type="checkbox"
-                    data-feature="compare-checkbox"
-                    checked={selectedForCompare.includes(area.id)}
-                    onChange={() => toggleCompare(area.id)}
-                  />
-                  Compare
-                </label>
-
-                <div className="row">
-                  <button
-                    type="button"
-                    data-feature="save-toggle-btn"
-                    onClick={() => engine.saved.toggle(area.id)}
-                  >
-                    {savedIds.includes(area.id) ? "★ Saved" : "☆ Save"}
-                  </button>
-                  <button
-                    type="button"
-                    data-feature="details-link"
-                    onClick={() => navigate(`/area/${encodeURIComponent(area.id)}`)}
-                  >
-                    Details &rarr;
-                  </button>
-                </div>
-              </div>
-            </article>
-          ))}
-        </section>
-      )}
-
-      {/* EMPTY / ERROR STATES */}
-      {searchState.isComplete && filteredAreas.length === 0 && searchState.stage !== "error" && (
-        <div data-feature="empty-state" className="box" style={{ textAlign: "center", padding: "32px" }}>
-          <h3>No localities match your filter criteria.</h3>
-          <p>Try loosening your commute limit, adjusting budget bounds, or unchecking filters.</p>
-        </div>
-      )}
-
-      {/* LOAD MORE */}
-      {displayedAreas.length < filteredAreas.length && (
-        <div style={{ textAlign: "center", margin: "16px 0" }}>
-          <button
-            type="button"
-            data-feature="load-more-btn"
-            onClick={() => setVisibleCount((prev) => prev + 6)}
-          >
-            Load More Localities ({filteredAreas.length - displayedAreas.length} remaining)
-          </button>
-        </div>
-      )}
-
-      {/* 7. STICKY COMPARE BAR */}
-      {selectedForCompare.length > 0 && (
-        <aside className="sticky-bar row" data-feature="compare-sticky-bar" style={{ justifyContent: "space-between" }}>
-          <div>
-            <strong>Comparing ({selectedForCompare.length} of 3):</strong> {selectedForCompare.join(", ")}
-          </div>
-          <div className="row">
-            <button
-              data-feature="clear-compare-btn"
-              onClick={() => setSelectedForCompare([])}
-            >
-              Clear
-            </button>
-            <button
-              data-feature="compare-btn"
-              style={{ fontWeight: "bold" }}
-              onClick={() => navigate(`/compare?ids=${selectedForCompare.join(",")}`)}
-            >
-              View Comparison &rarr;
-            </button>
           </div>
         </aside>
+      )}
+
+      {/* 3. TOOLBAR: Results Count, View Toggle, Refine Disclosure */}
+      <div className="locus-results__toolbar">
+        <span className="locus-results__count-text">
+          {searchState.areas.length > 0
+            ? `${filteredAreas.length} ranked candidate neighbourhoods`
+            : "Searching candidate areas..."}
+        </span>
+
+        {/* View Toggle: List vs Map (Segmented Control) */}
+        <div className="locus-view-toggle" data-feature="view-toggle" role="group" aria-label="Result View Mode">
+          <button
+            type="button"
+            className={`locus-view-toggle__btn ${viewMode === "list" ? "locus-view-toggle__btn--active" : ""}`}
+            onClick={() => setViewMode("list")}
+          >
+            List
+          </button>
+          <button
+            type="button"
+            className={`locus-view-toggle__btn ${viewMode === "map" ? "locus-view-toggle__btn--active" : ""}`}
+            onClick={() => setViewMode("map")}
+          >
+            Map
+          </button>
+        </div>
+      </div>
+
+      {/* Collapsed Refine Disclosure */}
+      <RefineDisclosure
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        maxCommuteMin={filterMaxCommute}
+        onMaxCommuteChange={setFilterMaxCommute}
+        minMatchScore={filterMinMatch}
+        onMinMatchChange={setFilterMinMatch}
+        hideLowConfidence={filterHideLowConfidence}
+        onHideLowConfidenceChange={setFilterHideLowConfidence}
+      />
+
+      {/* 4. MAIN CANDIDATE FEED & MAP LAYOUT */}
+      <div className={`locus-results__layout ${isMapActive ? "locus-results__layout--with-map" : ""}`}>
+        {/* Candidate Feed (Single-column at comfortable reading width) */}
+        <div className="locus-area-feed" data-feature="area-list">
+          {/* Error State */}
+          {screenState === "error" && (
+            <ErrorState
+              message={searchState.errors[0] || "Pipeline service unreachable. Please try again."}
+              onRetry={handleRetrySearch}
+              retryLabel="Try again"
+            />
+          )}
+
+          {/* Empty State */}
+          {screenState === "empty" && (
+            <EmptyState
+              message="No neighbourhoods matched your commute or budget criteria."
+              action={{
+                label: "Adjust Preferences",
+                onClick: () => navigate("/plan"),
+              }}
+            />
+          )}
+
+          {/* Filtered Empty State (Candidates exist, but active filters excluded them all) */}
+          {(screenState === "ready" || screenState === "partial") && filteredAreas.length === 0 && searchState.areas.length > 0 && (
+            <EmptyState
+              message="No neighbourhoods match the active filter criteria. Try extending the commute limit or lowering the match threshold."
+              action={{
+                label: "Reset Filters",
+                onClick: () => {
+                  setFilterMaxCommute(90);
+                  setFilterMinMatch(0);
+                  setFilterHideLowConfidence(false);
+                },
+              }}
+            />
+          )}
+
+          {/* Loading Skeletons (Matching card dimensions to guarantee zero layout shift) */}
+          {screenState === "loading" && (
+            <>
+              {[1, 2, 3].map((n) => (
+                <Card key={n} className="locus-area-card--skeleton">
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "12px" }}>
+                    <Skeleton width="45%" height="1.5rem" />
+                    <Skeleton width="20%" height="2rem" />
+                  </div>
+                  <Skeleton width="90%" height="1rem" style={{ marginBottom: "8px" }} />
+                  <Skeleton width="75%" height="1rem" style={{ marginBottom: "16px" }} />
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px" }}>
+                    <Skeleton width="100%" height="3rem" />
+                    <Skeleton width="100%" height="3rem" />
+                    <Skeleton width="100%" height="3rem" />
+                  </div>
+                </Card>
+              ))}
+            </>
+          )}
+
+          {/* Render Candidate Area Cards */}
+          {displayedAreas.map((area, idx) => (
+            <AreaCard
+              key={area.id}
+              area={area}
+              isSaved={savedIds.includes(area.id)}
+              onToggleSave={handleToggleSave}
+              isCompared={selectedForCompare.includes(area.id)}
+              onToggleCompare={handleToggleCompare}
+              staggerIndex={idx}
+            />
+          ))}
+
+          {/* Load More Button */}
+          {hasMore && screenState !== "loading" && screenState !== "empty" && screenState !== "error" && (
+            <div style={{ textAlign: "center", margin: "var(--space-6) 0" }}>
+              <Button
+                variant="secondary"
+                data-feature="load-more-btn"
+                onClick={() => setVisibleCount((prev) => prev + 10)}
+              >
+                Load more candidate neighbourhoods
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Map Column (Desktop side-by-side or active map container) */}
+        {isMapActive && (
+          <div className="locus-results__map-col">
+            <div data-feature="map-placeholder" className="locus-map-container">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                <line x1="8" y1="2" x2="8" y2="18" />
+                <line x1="16" y1="6" x2="16" y2="22" />
+              </svg>
+              <span style={{ fontWeight: 500 }}>Interactive Map View</span>
+              <span style={{ fontSize: "var(--text-xs)" }}>
+                Showing {filteredAreas.length} candidate pins
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 5. FLOATING STICKY COMPARE BAR */}
+      <CompareStickyBar
+        selectedCount={selectedForCompare.length}
+        maxCount={3}
+        onClear={handleClearCompare}
+        onCompare={handleCompare}
+      />
+
+      {/* Auto-dismissing Toast Feedback */}
+      {toastMessage && (
+        <div className="locus-toast-container">
+          <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />
+        </div>
       )}
     </main>
   );
