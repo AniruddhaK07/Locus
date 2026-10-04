@@ -1,0 +1,56 @@
+{
+  "fetchedAt": "2026-10-04T05:33:39.906Z",
+  "url": "https://router.project-osrm.org/route/v1/driving/77.62,13.0489;77.6245,12.9352?overview=false",
+  "status": 200,
+  "headers": {
+    "access-control-allow-headers": "X-Requested-With, Content-Type",
+    "access-control-allow-methods": "GET",
+    "access-control-allow-origin": "*",
+    "content-disposition": "inline; filename=\"response.json\"",
+    "content-encoding": "gzip",
+    "content-length": "383",
+    "content-type": "application/json; charset=UTF-8",
+    "date": "Sun, 04 Oct 2026 05:33:39 GMT",
+    "server": "nginx"
+  },
+  "json": {
+    "code": "Ok",
+    "routes": [
+      {
+        "legs": [
+          {
+            "steps": [],
+            "weight": 1307.7,
+            "summary": "",
+            "duration": 1307.7,
+            "distance": 17962.6
+          }
+        ],
+        "weight_name": "routability",
+        "weight": 1307.7,
+        "duration": 1307.7,
+        "distance": 17962.6
+      }
+    ],
+    "waypoints": [
+      {
+        "hint": "2JKki____38eAAAAIwAAAAAAAAB6AAAAwysGQqtXokAAAAAAONUGQx4AAAAjAAAAAAAAAHoAAADQJwEAbGGgBPQbxwAgY6AERBzHAAAAnwoAAAAA",
+        "location": [
+          77.619564,
+          13.04882
+        ],
+        "name": "",
+        "distance": 48.11560192
+      },
+      {
+        "hint": "V5rigP___38IAAAACQAAAF4AAAAAAAAA8Rx1QYHolD9cWQZDAAAAAAgAAAAJAAAAXgAAAAAAAADQJwEAs3SgBCFgxQC0dKAEIGDFAAIAbw4AAAAA",
+        "location": [
+          77.624499,
+          12.935201
+        ],
+        "name": "Mahayogi Vemana Road",
+        "distance": 0.1549675933
+      }
+    ]
+  }
+}

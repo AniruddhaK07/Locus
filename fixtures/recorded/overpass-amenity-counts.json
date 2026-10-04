@@ -1,0 +1,77 @@
+{
+  "fetchedAt": "2026-10-04T05:32:25.838Z",
+  "mirror": "overpass-api.de",
+  "query": "[out:json][timeout:20];\nnwr[\"amenity\"~\"^(hospital|clinic|pharmacy)$\"](around:1500, 12.9352, 77.6245)->.health;\nnwr[\"amenity\"~\"^(school|college|kindergarten)$\"](around:1500, 12.9352, 77.6245)->.education;\nnwr[\"shop\"~\"^(supermarket|convenience|grocery)$\"](around:800, 12.9352, 77.6245)->.grocery;\nnwr[\"amenity\"~\"^(restaurant|cafe|fast_food)$\"](around:800, 12.9352, 77.6245)->.food;\nnwr[\"leisure\"~\"^(park|garden|fitness_centre)$\"](around:1500, 12.9352, 77.6245)->.leisure;\nnwr[\"highway\"=\"bus_stop\"](around:500, 12.9352, 77.6245)->.bus;\nnwr[\"railway\"~\"^(station|subway_entrance)$\"](around:1500, 12.9352, 77.6245)->.rail;\n\n.health out count;\n.education out count;\n.grocery out count;\n.food out count;\n.leisure out count;\n.bus out count;\n.rail out count;\n",
+  "elements": [
+    {
+      "type": "count",
+      "id": 0,
+      "tags": {
+        "nodes": "76",
+        "ways": "2",
+        "relations": "1",
+        "total": "79"
+      }
+    },
+    {
+      "type": "count",
+      "id": 0,
+      "tags": {
+        "nodes": "28",
+        "ways": "16",
+        "relations": "3",
+        "total": "47"
+      }
+    },
+    {
+      "type": "count",
+      "id": 0,
+      "tags": {
+        "nodes": "22",
+        "ways": "1",
+        "relations": "0",
+        "total": "23"
+      }
+    },
+    {
+      "type": "count",
+      "id": 0,
+      "tags": {
+        "nodes": "165",
+        "ways": "3",
+        "relations": "0",
+        "total": "168"
+      }
+    },
+    {
+      "type": "count",
+      "id": 0,
+      "tags": {
+        "nodes": "10",
+        "ways": "48",
+        "relations": "0",
+        "total": "58"
+      }
+    },
+    {
+      "type": "count",
+      "id": 0,
+      "tags": {
+        "nodes": "9",
+        "ways": "0",
+        "relations": "0",
+        "total": "9"
+      }
+    },
+    {
+      "type": "count",
+      "id": 0,
+      "tags": {
+        "nodes": "0",
+        "ways": "0",
+        "relations": "0",
+        "total": "0"
+      }
+    }
+  ]
+}

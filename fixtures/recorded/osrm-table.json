@@ -1,0 +1,76 @@
+{
+  "fetchedAt": "2026-10-04T05:33:41.390Z",
+  "url": "https://router.project-osrm.org/table/v1/car/77.62,13.0489;77.6245,12.9352;77.6444,12.9811;77.7499,12.9698?sources=0",
+  "status": 200,
+  "headers": {
+    "access-control-allow-headers": "X-Requested-With, Content-Type",
+    "access-control-allow-methods": "GET",
+    "access-control-allow-origin": "*",
+    "content-disposition": "inline; filename=\"response.json\"",
+    "content-encoding": "gzip",
+    "content-length": "536",
+    "content-type": "application/json; charset=UTF-8",
+    "date": "Sun, 04 Oct 2026 05:33:40 GMT",
+    "server": "nginx"
+  },
+  "json": {
+    "code": "Ok",
+    "destinations": [
+      {
+        "hint": "2JKki____38eAAAAIwAAAAAAAAB6AAAAwysGQqtXokAAAAAAONUGQx4AAAAjAAAAAAAAAHoAAADQJwEAbGGgBPQbxwAgY6AERBzHAAAAnwoAAAAA",
+        "location": [
+          77.619564,
+          13.04882
+        ],
+        "name": "",
+        "distance": 48.11560192
+      },
+      {
+        "hint": "V5rigP___38IAAAACQAAAF4AAAAAAAAA8Rx1QYHolD9cWQZDAAAAAAgAAAAJAAAAXgAAAAAAAADQJwEAs3SgBCFgxQC0dKAEIGDFAAIAbw4AAAAA",
+        "location": [
+          77.624499,
+          12.935201
+        ],
+        "name": "Mahayogi Vemana Road",
+        "distance": 0.1549675933
+      },
+      {
+        "hint": "Z6mSg2s2w4McAAAAFAAAAAAAAAAAAAAAriigQVEgWUEAAAAAAAAAABwAAAAUAAAAAAAAAAAAAADQJwEA28GgBF0TxgBwwqAEbBPGAAAALxYAAAAA",
+        "location": [
+          77.644251,
+          12.981085
+        ],
+        "name": "1st Cross Road",
+        "distance": 16.25079488
+      },
+      {
+        "hint": "yO0Rlf___38LAAAADQAAABcAAAAAAAAAZEWfQSY3ZUBGq7JAAAAAAAsAAAANAAAAFwAAAAAAAADQJwEAmV6iBEbnxQCMXqIESOfFAAIAjwAAAAAA",
+        "location": [
+          77.749913,
+          12.969798
+        ],
+        "name": "Whitefield Main Road",
+        "distance": 1.427692294
+      }
+    ],
+    "durations": [
+      [
+        0,
+        1307.7,
+        916.9,
+        1474.8
+      ]
+    ],
+    "sources": [
+      {
+        "hint": "2JKki____38eAAAAIwAAAAAAAAB6AAAAwysGQqtXokAAAAAAONUGQx4AAAAjAAAAAAAAAHoAAADQJwEAbGGgBPQbxwAgY6AERBzHAAAAnwoAAAAA",
+        "location": [
+          77.619564,
+          13.04882
+        ],
+        "name": "",
+        "distance": 48.11560192
+      }
+    ]
+  }
+}

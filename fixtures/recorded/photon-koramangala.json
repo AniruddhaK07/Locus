@@ -1,0 +1,146 @@
+{
+  "fetchedAt": "2026-10-04T05:27:21.957Z",
+  "requestUrl": "https://photon.komoot.io/api/?q=Koramangala&limit=5",
+  "status": 200,
+  "headers": {
+    "cache-control": "max-age=3600",
+    "connection": "keep-alive",
+    "content-encoding": "gzip",
+    "content-length": "528",
+    "content-type": "application/json",
+    "date": "Sun, 04 Oct 2026 05:27:21 GMT",
+    "expires": "Sun, 04 Oct 2026 06:27:21 GMT",
+    "server": "nginx"
+  },
+  "data": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 429918282,
+          "osm_key": "place",
+          "osm_value": "suburb",
+          "type": "locality",
+          "name": "Koramangala",
+          "district": "Sri Lakshmi Devi Ward",
+          "county": "Bangalore South",
+          "state": "Karnataka",
+          "country": "India",
+          "postcode": "560095",
+          "countrycode": "IN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            77.624081,
+            12.9357366
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 3192025629,
+          "osm_key": "place",
+          "osm_value": "village",
+          "type": "city",
+          "name": "Koramangala",
+          "county": "Devanahalli taluku",
+          "state": "Karnataka",
+          "country": "India",
+          "postcode": "562110",
+          "countrycode": "IN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            77.7519261,
+            13.2923988
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 4466385493,
+          "osm_key": "amenity",
+          "osm_value": "post_office",
+          "type": "house",
+          "housenumber": "67",
+          "name": "Koramangala",
+          "street": "2 D Main",
+          "locality": "Koramangala",
+          "district": "Sri Lakshmi Devi Ward",
+          "county": "Bangalore South",
+          "state": "Karnataka",
+          "country": "India",
+          "postcode": "560095",
+          "countrycode": "IN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            77.6189683,
+            12.9438501
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 1471128637,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "Koramangala Kalyana Mantapa",
+          "street": "80 Feet Road",
+          "locality": "Adugodi",
+          "district": "A Adugodi",
+          "county": "Bangalore South",
+          "state": "Karnataka",
+          "country": "India",
+          "postcode": "560095",
+          "countrycode": "IN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            77.6182202,
+            12.9370255
+          ]
+        }
+      },
+      {
+        "type": "Feature",
+        "properties": {
+          "osm_type": "N",
+          "osm_id": 1464962566,
+          "osm_key": "highway",
+          "osm_value": "bus_stop",
+          "type": "house",
+          "name": "Koramangala Police Station",
+          "street": "80 Feet Road",
+          "locality": "Adugodi",
+          "district": "A Adugodi",
+          "county": "Bangalore South",
+          "state": "Karnataka",
+          "country": "India",
+          "postcode": "560095",
+          "countrycode": "IN"
+        },
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            77.6207095,
+            12.9410328
+          ]
+        }
+      }
+    ]
+  }
+}
