@@ -9,6 +9,7 @@ import type { Engine, EngineOptions } from "./domain/types";
 import { MockEngine } from "./mock/mockEngine";
 
 export * from "./domain/types";
+export * from "./domain/selection";
 
 export const ENGINE_NAME = "Locus Engine";
 export const ENGINE_VERSION = "0.1.0";

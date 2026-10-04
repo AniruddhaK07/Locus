@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import type { AreaId, Preferences, SearchState } from "@engine";
-import { getEngine } from "@engine";
+import type { AreaId, Preferences, SearchState, SortOption } from "@engine";
+import { getEngine, selectAreas } from "@engine";
 import { ProvenanceBadge } from "../components/ProvenanceBadge";
 
 export function ResultsPage() {
@@ -37,7 +37,7 @@ export function ResultsPage() {
   });
 
   const [viewMode, setViewMode] = useState<"list" | "map">("list");
-  const [sortBy, setSortBy] = useState<"match" | "commute" | "amenities" | "rent">("match");
+  const [sortBy, setSortBy] = useState<SortOption>("match");
   const [filterMaxCommute, setFilterMaxCommute] = useState<number>(prefs.maxCommuteMin);
   const [filterMinMatch, setFilterMinMatch] = useState<number>(0);
   const [filterHideLowConfidence, setFilterHideLowConfidence] = useState(false);
@@ -76,28 +76,16 @@ export function ResultsPage() {
     };
   }, [prefs, engine]);
 
-  // Sort and filter areas
+  // Sort and filter areas using pure engine function
   const filteredAreas = useMemo(() => {
-    let list = [...searchState.areas];
-
-    // Filters
-    list = list.filter((a) => {
-      if ((a.effectiveCommuteMin.value ?? 999) > filterMaxCommute) return false;
-      if (a.matchScore < filterMinMatch) return false;
-      if (filterHideLowConfidence && a.confidence === "low") return false;
-      return true;
+    return selectAreas(searchState.areas, {
+      sort: sortBy,
+      filters: {
+        maxCommuteMin: filterMaxCommute,
+        minMatchScore: filterMinMatch,
+        hideLowConfidence: filterHideLowConfidence
+      }
     });
-
-    // Sorting
-    list.sort((a, b) => {
-      if (sortBy === "match") return b.matchScore - a.matchScore;
-      if (sortBy === "commute") return (a.effectiveCommuteMin.value ?? 999) - (b.effectiveCommuteMin.value ?? 999);
-      if (sortBy === "amenities") return (b.amenitiesScore.value ?? 0) - (a.amenitiesScore.value ?? 0);
-      if (sortBy === "rent") return (a.rentBand.value?.low ?? 999999) - (b.rentBand.value?.low ?? 999999);
-      return 0;
-    });
-
-    return list;
   }, [searchState.areas, sortBy, filterMaxCommute, filterMinMatch, filterHideLowConfidence]);
 
   const displayedAreas = filteredAreas.slice(0, visibleCount);

@@ -130,6 +130,7 @@ export interface SearchState {
   areas: AreaSummary[];
   totalCandidates: number;
   errors: string[];
+  localityErrors?: Record<AreaId, string>; // Per-locality failure map
   isComplete: boolean;
 }
 
