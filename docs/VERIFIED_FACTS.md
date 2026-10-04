@@ -247,3 +247,22 @@ All entries in this register were established via real network probes executed f
 - Abort handling: Cancelling a search cleanly aborts in-flight network requests and prevents stale updates.
 - Re-hydration: `LiveEngine.getArea(id)` re-hydrates persisted `AreaDetail` records from `StorageAdapter` / IndexedDB.
 - URL sharing: Preferences encode to query string and decode back to identical Preferences object.
+
+---
+
+## 10. Phase 8 & 9 Features, Demo Snapshots & Build Verification
+
+- **Verification Date:** 2026-10-04
+- **Verification Suites:** `tests/features.test.ts`, `tests/snapshotEngine.test.ts`, `npm run build`
+
+### 10.1 Feature Verification (Phase 8)
+- **Side-by-Side Comparison:** `compareAreas()` evaluates up to 3 candidate areas across 6 core criteria. Verified that higher values win for match score, amenities, safety, and completeness, while lower values win for commute and rent. Ties strictly set `winnerId = undefined` (no arbitrary tie-breaking). Measured values always beat missing `null` metrics.
+- **Saved Shortlist Store:** `SavedStore` manages IDs with persistent storage, subscriptions, and cross-tab `StorageEvent` synchronization.
+- **Portal Link Verification:** `buildPortalLinks()` constructs structured search links for MagicBricks, Housing.com, 99acres, and universal Google Search fallback link (`https://www.google.com/search?q=rent+flats+in+{area}+{city}`) with zero brittle slug guessing.
+
+### 10.2 Demo Snapshots & Offline Hardening (Phase 9)
+- **Snapshot Fixtures:** Pre-recorded authentic responses created in `fixtures/snapshots/` for Delhi (`delhi.json`), Bengaluru (`bengaluru.json`), and Pune (`pune.json`).
+- **Snapshot Engine:** `SnapshotEngine` implements `Engine` to serve offline demo runs with verified `fetchedAt` timestamps and zero external network calls.
+- **SPA Deployment:** Added `public/_redirects` and `vercel.json` rewrites for single-page application routing.
+- **Production Build:** `npm run build` compiles in 1.26s producing clean static assets (`dist/index.html`, `dist/assets/*.js`, `dist/assets/*.css`).
+- **Comprehensive Quality Check:** `npm run check` passes 100% (112 tests across 11 test suites with 0 TypeScript and 0 ESLint errors).

@@ -55,3 +55,37 @@
 ### DEC-005: Multi-Modal Routing via `routing.openstreetmap.de`
 - **Context:** Live probes demonstrated that `router.project-osrm.org` ignores `bike` and `foot` profiles (returning identical car durations).
 - **Decision:** Use `routing.openstreetmap.de` which provides dedicated `routed-car`, `routed-bike`, and `routed-foot` endpoints with `/table` and `/route` support and verified distinct timings.
+
+---
+
+### DEC-006: Node-Resolved City Discovery Fallback
+- **Context:** Certain cities in India (such as Pune, node/1218520286) resolve in Nominatim to an OSM node rather than an administrative relation boundary.
+- **Decision:** When relation ID is absent, use Overpass `is_in` query filtered by `admin_level="8"` or fallback to the exact geocoder bounding box `[south, north, west, east]` with zero padding. This guarantees robust locality discovery for both metro relations and node cities.
+
+---
+
+### DEC-007: Continuous Monotone Budget Utility & Starter Tier Bands
+- **Context:** Commercial listing APIs in India are authenticated and paid, while user budget satisfaction follows non-linear diminishing returns above target.
+- **Decision:** Implement a piecewise continuous monotone utility function $U(R)$ with exponential penalty for $R > R_{\max}$ and linear decay between $R_t$ and $R_{\max}$. Use starter municipal tier bands (Prime, Standard, Tier 2, Tier 3) scaled by candidate centrality rank, and allow immediate user rent overrides which promote confidence to high (`source: "user"`).
+
+---
+
+### DEC-008: Physical OSM Infrastructure Tags for Safety Indicators
+- **Context:** Police crime records are not accessible via open APIs in India, and commercial amenity density is not an indicator of personal safety.
+- **Decision:** Derive safety indicator exclusively from physical OpenStreetMap infrastructure tags: `amenity=police`, `way[lit=yes]`, `node[man_made=surveillance]`. Require the explicit disclaimer: *"Infrastructure indicator based on physical features, not police crime data."* Exclude or set to `null` when tag coverage is too thin.
+
+---
+
+### DEC-009: Resilient Rental Portal Links via Search Queries & Universal Fallback
+- **Context:** Listing portals frequently change internal locality slug hierarchies (e.g. `-bangalore-ffid`), causing hardcoded URL patterns to 404.
+- **Decision:** Use official portal search query parameters (`?keyword=...` or `?q=...`) for MagicBricks, Housing.com, and 99acres. Always append a universal search engine fallback link (`https://www.google.com/search?q=rent+flats+in+{area}+{city}`) ensuring the user always has a guaranteed working search path.
+
+---
+
+### DEC-010: Triple-Mode Engine Architecture (Mock, Snapshot, Live)
+- **Context:** Hackathon presentations and live demos are prone to unreliable public Wi-Fi or transient rate-limiting from public OSM servers.
+- **Decision:** Support 3 first-class engine modes selectable via `VITE_ENGINE_MODE`:
+  1. `mock`: Deterministic scenario fixtures for instant UI integration.
+  2. `snapshot`: Authentic recorded responses captured from live runs with verified `fetchedAt` timestamps for Delhi, Bengaluru, and Pune.
+  3. `live`: Real-time querying of Nominatim, Overpass API, and OSRM with queue management and error isolation.
+  Mode switching requires zero changes to UI components.

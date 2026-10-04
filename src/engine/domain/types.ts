@@ -171,9 +171,10 @@ export interface MethodInfo {
 export type MockScenario = "normal" | "slow" | "partial" | "empty" | "error" | "sparse-data";
 
 export interface EngineOptions {
-  mode: "live" | "mock";
+  mode: "live" | "mock" | "snapshot";
   scenario?: MockScenario;
   geoContact?: string;
+  snapshotCity?: "Delhi" | "Bengaluru" | "Pune";
 }
 
 export interface Engine {

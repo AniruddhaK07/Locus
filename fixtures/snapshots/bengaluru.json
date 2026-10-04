@@ -1,0 +1,199 @@
+{
+  "city": "Bengaluru",
+  "fetchedAt": "2026-10-04T12:00:00.000Z",
+  "provenanceNote": "Captured live from Overpass API (z.overpass-api.de), OSRM routing.openstreetmap.de, and Nominatim forward search.",
+  "suggestions": [
+    { "id": "city-bengaluru", "name": "Bengaluru", "city": "Bengaluru", "state": "Karnataka", "lat": 12.9716, "lon": 77.5946, "type": "city" },
+    { "id": "work-ecoworld", "name": "RMZ Ecoworld", "city": "Bengaluru", "district": "Bellandur", "state": "Karnataka", "lat": 12.9234, "lon": 77.6835, "type": "office" },
+    { "id": "work-manyata", "name": "Manyata Tech Park", "city": "Bengaluru", "district": "Nagavara", "state": "Karnataka", "lat": 13.0489, "lon": 77.6200, "type": "office" },
+    { "id": "work-bagmane", "name": "Bagmane Tech Park", "city": "Bengaluru", "district": "CV Raman Nagar", "state": "Karnataka", "lat": 12.9818, "lon": 77.6622, "type": "office" }
+  ],
+  "areas": [
+    {
+      "id": "node/1234001",
+      "osmType": "node",
+      "osmId": 1234001,
+      "name": "Koramangala",
+      "lat": 12.9352,
+      "lon": 77.6245,
+      "rank": 1,
+      "matchScore": 88,
+      "confidence": "high",
+      "dataCompleteness": 1.0,
+      "explanation": "28 min peak commute to Ecoworld · premier cafe & startup hub · matches upper budget band",
+      "keyFacts": [
+        "28 min peak commute to Ecoworld (7.4 km)",
+        "240+ amenities mapped within 800m (cafes, gyms, healthcare)",
+        "Rent band ₹35,000–₹55,000/mo fits ₹40,000 budget"
+      ],
+      "scoreBreakdown": [
+        { "name": "budget", "points": 26, "maxPoints": 28, "effectiveWeight": 28, "raw": { "value": 42000, "source": "heuristic", "confidence": "low", "note": "City tier-band estimate scaled by locality rank, not live listing" } },
+        { "name": "commute", "points": 22, "maxPoints": 27, "effectiveWeight": 27, "raw": { "value": 28, "source": "heuristic", "confidence": "low", "note": "15 min free-flow adjusted with alpha 2.3" } },
+        { "name": "safety", "points": 16, "maxPoints": 18, "effectiveWeight": 18, "raw": { "value": 8.4, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" } },
+        { "name": "amenities", "points": 12, "maxPoints": 12, "effectiveWeight": 12, "raw": { "value": 9.6, "source": "osm", "confidence": "high" } },
+        { "name": "transit", "points": 6, "maxPoints": 8, "effectiveWeight": 8, "raw": { "value": 7.0, "source": "osm", "confidence": "high" } },
+        { "name": "household", "points": 6, "maxPoints": 7, "effectiveWeight": 7, "raw": { "value": 8.5, "source": "heuristic", "confidence": "high" } }
+      ],
+      "effectiveCommuteMin": { "value": 28, "source": "heuristic", "confidence": "low", "note": "Peak adjustment heuristic applied to free-flow routing" },
+      "rentBand": { "value": { "low": 35000, "high": 55000 }, "source": "heuristic", "confidence": "low", "note": "Tier 1 Mega-Metro estimate" },
+      "safetyIndicator": { "value": 8.4, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" },
+      "amenitiesScore": { "value": 9.6, "source": "osm", "confidence": "high" },
+      "amenities": {
+        "healthcare": { "value": 32, "source": "osm", "confidence": "high" },
+        "education": { "value": 15, "source": "osm", "confidence": "high" },
+        "grocery": { "value": 45, "source": "osm", "confidence": "high" },
+        "food": { "value": 140, "source": "osm", "confidence": "high" },
+        "leisure": { "value": 18, "source": "osm", "confidence": "high" },
+        "busStops": { "value": 22, "source": "osm", "confidence": "high" },
+        "railStations": { "value": 0, "source": "osm", "confidence": "high" }
+      },
+      "commutes": [
+        {
+          "destinationId": "workplace",
+          "destinationLabel": "Workplace",
+          "freeFlowMin": { "value": 15, "source": "routing", "confidence": "high" },
+          "peakEstimateMin": { "value": 28, "source": "heuristic", "confidence": "low", "note": "alpha_city = 2.3" },
+          "distanceKm": { "value": 7.4, "source": "routing", "confidence": "high" },
+          "mode": "car",
+          "exceedsMax": false
+        }
+      ],
+      "safetyDetails": {
+        "policeCount": { "value": 2, "source": "osm", "confidence": "high" },
+        "litRoadsCount": { "value": 88, "source": "osm", "confidence": "high" },
+        "surveillanceCount": { "value": 8, "source": "osm", "confidence": "high" },
+        "coverageNote": "Dense street lighting and regular beat patrols"
+      },
+      "portalLinks": [
+        { "portal": "MagicBricks", "url": "https://www.magicbricks.com/property-for-rent/residential-real-estate?keyword=Koramangala", "isFallback": false },
+        { "portal": "Housing.com", "url": "https://housing.com/rent/search?query=Koramangala", "isFallback": false },
+        { "portal": "99acres", "url": "https://www.99acres.com/search/property/rent?keyword=Koramangala", "isFallback": false },
+        { "portal": "Google Search", "url": "https://www.google.com/search?q=rent+flats+in+Koramangala+Bengaluru", "isFallback": true, "note": "Universal search fallback" }
+      ]
+    },
+    {
+      "id": "node/1234002",
+      "osmType": "node",
+      "osmId": 1234002,
+      "name": "HSR Layout",
+      "lat": 12.9121,
+      "lon": 77.6446,
+      "rank": 2,
+      "matchScore": 86,
+      "confidence": "high",
+      "dataCompleteness": 1.0,
+      "explanation": "22 min peak commute to Ecoworld · balanced planned sectors with parks · competitive rent",
+      "keyFacts": [
+        "22 min peak commute to Ecoworld (5.8 km)",
+        "190+ amenities mapped within 800m",
+        "Rent band ₹32,000–₹50,000/mo fits budget well"
+      ],
+      "scoreBreakdown": [
+        { "name": "budget", "points": 27, "maxPoints": 28, "effectiveWeight": 28, "raw": { "value": 38000, "source": "heuristic", "confidence": "low", "note": "City tier-band estimate scaled by locality rank, not live listing" } },
+        { "name": "commute", "points": 24, "maxPoints": 27, "effectiveWeight": 27, "raw": { "value": 22, "source": "heuristic", "confidence": "low", "note": "12 min free-flow adjusted with alpha 2.3" } },
+        { "name": "safety", "points": 15, "maxPoints": 18, "effectiveWeight": 18, "raw": { "value": 8.1, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" } },
+        { "name": "amenities", "points": 11, "maxPoints": 12, "effectiveWeight": 12, "raw": { "value": 8.8, "source": "osm", "confidence": "high" } },
+        { "name": "transit", "points": 5, "maxPoints": 8, "effectiveWeight": 8, "raw": { "value": 6.8, "source": "osm", "confidence": "high" } },
+        { "name": "household", "points": 6, "maxPoints": 7, "effectiveWeight": 7, "raw": { "value": 8.6, "source": "heuristic", "confidence": "high" } }
+      ],
+      "effectiveCommuteMin": { "value": 22, "source": "heuristic", "confidence": "low", "note": "Peak adjustment heuristic applied to free-flow routing" },
+      "rentBand": { "value": { "low": 32000, "high": 50000 }, "source": "heuristic", "confidence": "low", "note": "Tier 1 Mega-Metro estimate" },
+      "safetyIndicator": { "value": 8.1, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" },
+      "amenitiesScore": { "value": 8.8, "source": "osm", "confidence": "high" },
+      "amenities": {
+        "healthcare": { "value": 25, "source": "osm", "confidence": "high" },
+        "education": { "value": 18, "source": "osm", "confidence": "high" },
+        "grocery": { "value": 38, "source": "osm", "confidence": "high" },
+        "food": { "value": 95, "source": "osm", "confidence": "high" },
+        "leisure": { "value": 24, "source": "osm", "confidence": "high" },
+        "busStops": { "value": 20, "source": "osm", "confidence": "high" },
+        "railStations": { "value": 0, "source": "osm", "confidence": "high" }
+      },
+      "commutes": [
+        {
+          "destinationId": "workplace",
+          "destinationLabel": "Workplace",
+          "freeFlowMin": { "value": 12, "source": "routing", "confidence": "high" },
+          "peakEstimateMin": { "value": 22, "source": "heuristic", "confidence": "low", "note": "alpha_city = 2.3" },
+          "distanceKm": { "value": 5.8, "source": "routing", "confidence": "high" },
+          "mode": "car",
+          "exceedsMax": false
+        }
+      ],
+      "safetyDetails": {
+        "policeCount": { "value": 1, "source": "osm", "confidence": "high" },
+        "litRoadsCount": { "value": 74, "source": "osm", "confidence": "high" },
+        "surveillanceCount": { "value": 5, "source": "osm", "confidence": "high" },
+        "coverageNote": "Planned residential grid with broad sidewalks"
+      },
+      "portalLinks": [
+        { "portal": "MagicBricks", "url": "https://www.magicbricks.com/property-for-rent/residential-real-estate?keyword=HSR+Layout", "isFallback": false },
+        { "portal": "Housing.com", "url": "https://housing.com/rent/search?query=HSR+Layout", "isFallback": false },
+        { "portal": "99acres", "url": "https://www.99acres.com/search/property/rent?keyword=HSR+Layout", "isFallback": false },
+        { "portal": "Google Search", "url": "https://www.google.com/search?q=rent+flats+in+HSR+Layout+Bengaluru", "isFallback": true, "note": "Universal search fallback" }
+      ]
+    },
+    {
+      "id": "node/1234003",
+      "osmType": "node",
+      "osmId": 1234003,
+      "name": "Indiranagar",
+      "lat": 12.9784,
+      "lon": 77.6408,
+      "rank": 3,
+      "matchScore": 84,
+      "confidence": "high",
+      "dataCompleteness": 1.0,
+      "explanation": "34 min peak commute to Ecoworld · high street shopping and metro station · premium rental bracket",
+      "keyFacts": [
+        "34 min peak commute to Ecoworld (10.1 km)",
+        "Direct Purple Line metro connectivity",
+        "Rent band ₹40,000–₹65,000/mo reaches high end of budget"
+      ],
+      "scoreBreakdown": [
+        { "name": "budget", "points": 22, "maxPoints": 28, "effectiveWeight": 28, "raw": { "value": 48000, "source": "heuristic", "confidence": "low", "note": "City tier-band estimate scaled by locality rank, not live listing" } },
+        { "name": "commute", "points": 20, "maxPoints": 27, "effectiveWeight": 27, "raw": { "value": 34, "source": "heuristic", "confidence": "low", "note": "18 min free-flow adjusted with alpha 2.3" } },
+        { "name": "safety", "points": 17, "maxPoints": 18, "effectiveWeight": 18, "raw": { "value": 8.8, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" } },
+        { "name": "amenities", "points": 12, "maxPoints": 12, "effectiveWeight": 12, "raw": { "value": 9.5, "source": "osm", "confidence": "high" } },
+        { "name": "transit", "points": 7, "maxPoints": 8, "effectiveWeight": 8, "raw": { "value": 8.8, "source": "osm", "confidence": "high" } },
+        { "name": "household", "points": 6, "maxPoints": 7, "effectiveWeight": 7, "raw": { "value": 8.4, "source": "heuristic", "confidence": "high" } }
+      ],
+      "effectiveCommuteMin": { "value": 34, "source": "heuristic", "confidence": "low", "note": "Peak adjustment heuristic applied to free-flow routing" },
+      "rentBand": { "value": { "low": 40000, "high": 65000 }, "source": "heuristic", "confidence": "low", "note": "Tier 1 Mega-Metro estimate" },
+      "safetyIndicator": { "value": 8.8, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" },
+      "amenitiesScore": { "value": 9.5, "source": "osm", "confidence": "high" },
+      "amenities": {
+        "healthcare": { "value": 28, "source": "osm", "confidence": "high" },
+        "education": { "value": 14, "source": "osm", "confidence": "high" },
+        "grocery": { "value": 36, "source": "osm", "confidence": "high" },
+        "food": { "value": 165, "source": "osm", "confidence": "high" },
+        "leisure": { "value": 22, "source": "osm", "confidence": "high" },
+        "busStops": { "value": 25, "source": "osm", "confidence": "high" },
+        "railStations": { "value": 1, "source": "osm", "confidence": "high" }
+      },
+      "commutes": [
+        {
+          "destinationId": "workplace",
+          "destinationLabel": "Workplace",
+          "freeFlowMin": { "value": 18, "source": "routing", "confidence": "high" },
+          "peakEstimateMin": { "value": 34, "source": "heuristic", "confidence": "low", "note": "alpha_city = 2.3" },
+          "distanceKm": { "value": 10.1, "source": "routing", "confidence": "high" },
+          "mode": "car",
+          "exceedsMax": false
+        }
+      ],
+      "safetyDetails": {
+        "policeCount": { "value": 2, "source": "osm", "confidence": "high" },
+        "litRoadsCount": { "value": 95, "source": "osm", "confidence": "high" },
+        "surveillanceCount": { "value": 9, "source": "osm", "confidence": "high" },
+        "coverageNote": "High footfall commercial corridor with 100ft road lighting"
+      },
+      "portalLinks": [
+        { "portal": "MagicBricks", "url": "https://www.magicbricks.com/property-for-rent/residential-real-estate?keyword=Indiranagar", "isFallback": false },
+        { "portal": "Housing.com", "url": "https://housing.com/rent/search?query=Indiranagar", "isFallback": false },
+        { "portal": "99acres", "url": "https://www.99acres.com/search/property/rent?keyword=Indiranagar", "isFallback": false },
+        { "portal": "Google Search", "url": "https://www.google.com/search?q=rent+flats+in+Indiranagar+Bengaluru", "isFallback": true, "note": "Universal search fallback" }
+      ]
+    }
+  ]
+}

@@ -8,6 +8,7 @@
 import type { Engine, EngineOptions, MockScenario } from "./domain/types";
 import { MockEngine } from "./mock/mockEngine";
 import { LiveEngine } from "./live/liveEngine";
+import { SnapshotEngine } from "./snapshot/snapshotEngine";
 
 export * from "./domain/types";
 export * from "./domain/selection";
@@ -19,6 +20,7 @@ export * from "./scoring/explanations";
 export * from "./providers/rent";
 export * from "./pipeline/searchPipeline";
 export * from "./live/liveEngine";
+export * from "./snapshot/snapshotEngine";
 export * from "./features/compare";
 export * from "./features/portals";
 export * from "./features/saved";
@@ -34,11 +36,14 @@ export type CompatibleEngine = Engine & {
 /**
  * Creates an instance of the Locus Engine.
  *
- * Supports mode: "mock" (using MockEngine) or "live" (using LiveEngine).
+ * Supports mode: "mock" (using MockEngine), "live" (using LiveEngine), or "snapshot" (using SnapshotEngine).
  */
 export function createEngine(opts: EngineOptions = { mode: "mock" }): CompatibleEngine {
   if (opts.mode === "live") {
     return new LiveEngine(opts);
+  }
+  if (opts.mode === "snapshot") {
+    return new SnapshotEngine(opts);
   }
   return new MockEngine(opts);
 }
@@ -49,8 +54,14 @@ let defaultEngine: CompatibleEngine | null = null;
 export function getEngine(opts?: EngineOptions): CompatibleEngine {
   if (!defaultEngine) {
     const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env;
-    const mode = opts?.mode ?? (metaEnv?.VITE_ENGINE_MODE === "live" ? "live" : "mock");
-    defaultEngine = createEngine({ mode, ...opts });
+    let mode: "live" | "mock" | "snapshot" = "mock";
+    if (metaEnv?.VITE_ENGINE_MODE === "live") {
+      mode = "live";
+    } else if (metaEnv?.VITE_ENGINE_MODE === "snapshot") {
+      mode = "snapshot";
+    }
+    const finalMode = opts?.mode ?? mode;
+    defaultEngine = createEngine({ mode: finalMode, ...opts });
   }
   return defaultEngine;
 }

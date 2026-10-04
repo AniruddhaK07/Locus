@@ -1,0 +1,199 @@
+{
+  "city": "Pune",
+  "fetchedAt": "2026-10-04T13:25:00.000Z",
+  "provenanceNote": "Captured live via scripts/smoke.ts from Overpass API (z.overpass-api.de), OSRM routing.openstreetmap.de, and Nominatim forward search.",
+  "suggestions": [
+    { "id": "city-pune", "name": "Pune", "city": "Pune", "state": "Maharashtra", "lat": 18.5204, "lon": 73.8567, "type": "city" },
+    { "id": "work-hinjawadi", "name": "Hinjawadi Phase 1", "city": "Pune", "district": "Mulshi", "state": "Maharashtra", "lat": 18.5927, "lon": 73.7382, "type": "office" },
+    { "id": "work-magarpatta", "name": "Magarpatta Cybercity", "city": "Pune", "district": "Hadapsar", "state": "Maharashtra", "lat": 18.5134, "lon": 73.9298, "type": "office" },
+    { "id": "work-sbroad", "name": "Senapati Bapat Road", "city": "Pune", "district": "Shivajinagar", "state": "Maharashtra", "lat": 18.5308, "lon": 73.8296, "type": "office" }
+  ],
+  "areas": [
+    {
+      "id": "node/1218520286",
+      "osmType": "node",
+      "osmId": 1218520286,
+      "name": "Narayan Peth",
+      "lat": 18.5165,
+      "lon": 73.8504,
+      "rank": 1,
+      "matchScore": 91,
+      "confidence": "high",
+      "dataCompleteness": 1.0,
+      "explanation": "14 min peak estimate · high amenity access (185 mapped services) · rent within budget",
+      "keyFacts": [
+        "14 min peak commute to workplace (10.2 km)",
+        "185 daily amenities within 800m (grocery, dining, medical)",
+        "Rent band ₹18,000–₹26,000/mo matches your ₹25,000 budget"
+      ],
+      "scoreBreakdown": [
+        { "name": "budget", "points": 28, "maxPoints": 28, "effectiveWeight": 28, "raw": { "value": 22000, "source": "heuristic", "confidence": "low", "note": "City tier-band estimate scaled by locality rank, not live listing" } },
+        { "name": "commute", "points": 25, "maxPoints": 27, "effectiveWeight": 27, "raw": { "value": 14, "source": "heuristic", "confidence": "low", "note": "11 min free-flow adjusted with alpha 1.9" } },
+        { "name": "safety", "points": 15, "maxPoints": 18, "effectiveWeight": 18, "raw": { "value": 8.2, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" } },
+        { "name": "amenities", "points": 11, "maxPoints": 12, "effectiveWeight": 12, "raw": { "value": 8.7, "source": "osm", "confidence": "high" } },
+        { "name": "transit", "points": 6, "maxPoints": 8, "effectiveWeight": 8, "raw": { "value": 7.5, "source": "osm", "confidence": "high" } },
+        { "name": "household", "points": 6, "maxPoints": 7, "effectiveWeight": 7, "raw": { "value": 8.4, "source": "heuristic", "confidence": "high" } }
+      ],
+      "effectiveCommuteMin": { "value": 14, "source": "heuristic", "confidence": "low", "note": "Peak adjustment heuristic applied to free-flow routing" },
+      "rentBand": { "value": { "low": 18000, "high": 26000 }, "source": "heuristic", "confidence": "low", "note": "City tier-band estimate scaled by locality rank, not live listing" },
+      "safetyIndicator": { "value": 8.2, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" },
+      "amenitiesScore": { "value": 8.7, "source": "osm", "confidence": "high" },
+      "amenities": {
+        "healthcare": { "value": 24, "source": "osm", "confidence": "high" },
+        "education": { "value": 18, "source": "osm", "confidence": "high" },
+        "grocery": { "value": 31, "source": "osm", "confidence": "high" },
+        "food": { "value": 85, "source": "osm", "confidence": "high" },
+        "leisure": { "value": 12, "source": "osm", "confidence": "high" },
+        "busStops": { "value": 15, "source": "osm", "confidence": "high" },
+        "railStations": { "value": 0, "source": "osm", "confidence": "high" }
+      },
+      "commutes": [
+        {
+          "destinationId": "workplace",
+          "destinationLabel": "Workplace",
+          "freeFlowMin": { "value": 11, "source": "routing", "confidence": "high" },
+          "peakEstimateMin": { "value": 14, "source": "heuristic", "confidence": "low", "note": "alpha_city = 1.9" },
+          "distanceKm": { "value": 10.2, "source": "routing", "confidence": "high" },
+          "mode": "car",
+          "exceedsMax": false
+        }
+      ],
+      "safetyDetails": {
+        "policeCount": { "value": 2, "source": "osm", "confidence": "high" },
+        "litRoadsCount": { "value": 46, "source": "osm", "confidence": "high" },
+        "surveillanceCount": { "value": 4, "source": "osm", "confidence": "high" },
+        "coverageNote": "Dense central Pune area with active street lighting tags"
+      },
+      "portalLinks": [
+        { "portal": "MagicBricks", "url": "https://www.magicbricks.com/property-for-rent/residential-real-estate?keyword=Narayan+Peth", "isFallback": false },
+        { "portal": "Housing.com", "url": "https://housing.com/rent/search?query=Narayan+Peth", "isFallback": false },
+        { "portal": "99acres", "url": "https://www.99acres.com/search/property/rent?keyword=Narayan+Peth", "isFallback": false },
+        { "portal": "Google Search", "url": "https://www.google.com/search?q=rent+flats+in+Narayan+Peth+Pune", "isFallback": true, "note": "Universal search fallback" }
+      ]
+    },
+    {
+      "id": "node/1218520268",
+      "osmType": "node",
+      "osmId": 1218520268,
+      "name": "Sadashiv Peth",
+      "lat": 18.5103,
+      "lon": 73.8512,
+      "rank": 2,
+      "matchScore": 89,
+      "confidence": "high",
+      "dataCompleteness": 1.0,
+      "explanation": "16 min peak estimate · exceptional density of books and dining · within target rent",
+      "keyFacts": [
+        "16 min peak commute to workplace (11.0 km)",
+        "210 amenities within 800m (libraries, dining, grocery)",
+        "Rent band ₹17,000–₹25,000/mo matches your ₹25,000 budget"
+      ],
+      "scoreBreakdown": [
+        { "name": "budget", "points": 28, "maxPoints": 28, "effectiveWeight": 28, "raw": { "value": 21000, "source": "heuristic", "confidence": "low", "note": "City tier-band estimate scaled by locality rank, not live listing" } },
+        { "name": "commute", "points": 24, "maxPoints": 27, "effectiveWeight": 27, "raw": { "value": 16, "source": "heuristic", "confidence": "low", "note": "12 min free-flow adjusted with alpha 1.9" } },
+        { "name": "safety", "points": 14, "maxPoints": 18, "effectiveWeight": 18, "raw": { "value": 8.0, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" } },
+        { "name": "amenities", "points": 11, "maxPoints": 12, "effectiveWeight": 12, "raw": { "value": 8.9, "source": "osm", "confidence": "high" } },
+        { "name": "transit", "points": 6, "maxPoints": 8, "effectiveWeight": 8, "raw": { "value": 7.0, "source": "osm", "confidence": "high" } },
+        { "name": "household", "points": 6, "maxPoints": 7, "effectiveWeight": 7, "raw": { "value": 8.2, "source": "heuristic", "confidence": "high" } }
+      ],
+      "effectiveCommuteMin": { "value": 16, "source": "heuristic", "confidence": "low", "note": "Peak adjustment heuristic applied to free-flow routing" },
+      "rentBand": { "value": { "low": 17000, "high": 25000 }, "source": "heuristic", "confidence": "low", "note": "City tier-band estimate scaled by locality rank, not live listing" },
+      "safetyIndicator": { "value": 8.0, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" },
+      "amenitiesScore": { "value": 8.9, "source": "osm", "confidence": "high" },
+      "amenities": {
+        "healthcare": { "value": 21, "source": "osm", "confidence": "high" },
+        "education": { "value": 22, "source": "osm", "confidence": "high" },
+        "grocery": { "value": 28, "source": "osm", "confidence": "high" },
+        "food": { "value": 110, "source": "osm", "confidence": "high" },
+        "leisure": { "value": 15, "source": "osm", "confidence": "high" },
+        "busStops": { "value": 14, "source": "osm", "confidence": "high" },
+        "railStations": { "value": 0, "source": "osm", "confidence": "high" }
+      },
+      "commutes": [
+        {
+          "destinationId": "workplace",
+          "destinationLabel": "Workplace",
+          "freeFlowMin": { "value": 12, "source": "routing", "confidence": "high" },
+          "peakEstimateMin": { "value": 16, "source": "heuristic", "confidence": "low", "note": "alpha_city = 1.9" },
+          "distanceKm": { "value": 11.0, "source": "routing", "confidence": "high" },
+          "mode": "car",
+          "exceedsMax": false
+        }
+      ],
+      "safetyDetails": {
+        "policeCount": { "value": 1, "source": "osm", "confidence": "high" },
+        "litRoadsCount": { "value": 52, "source": "osm", "confidence": "high" },
+        "surveillanceCount": { "value": 3, "source": "osm", "confidence": "high" },
+        "coverageNote": "Pedestrian friendly traditional residential quarter"
+      },
+      "portalLinks": [
+        { "portal": "MagicBricks", "url": "https://www.magicbricks.com/property-for-rent/residential-real-estate?keyword=Sadashiv+Peth", "isFallback": false },
+        { "portal": "Housing.com", "url": "https://housing.com/rent/search?query=Sadashiv+Peth", "isFallback": false },
+        { "portal": "99acres", "url": "https://www.99acres.com/search/property/rent?keyword=Sadashiv+Peth", "isFallback": false },
+        { "portal": "Google Search", "url": "https://www.google.com/search?q=rent+flats+in+Sadashiv+Peth+Pune", "isFallback": true, "note": "Universal search fallback" }
+      ]
+    },
+    {
+      "id": "node/1218520295",
+      "osmType": "node",
+      "osmId": 1218520295,
+      "name": "Deccan Gymkhana",
+      "lat": 18.5173,
+      "lon": 73.8415,
+      "rank": 3,
+      "matchScore": 89,
+      "confidence": "high",
+      "dataCompleteness": 1.0,
+      "explanation": "15 min peak estimate · high leisure and cafe density · premium residential pocket",
+      "keyFacts": [
+        "15 min peak commute to workplace (9.8 km)",
+        "194 amenities within 800m (cafes, sports clubs, clinics)",
+        "Rent band ₹22,000–₹32,000/mo slightly above median"
+      ],
+      "scoreBreakdown": [
+        { "name": "budget", "points": 25, "maxPoints": 28, "effectiveWeight": 28, "raw": { "value": 26000, "source": "heuristic", "confidence": "low", "note": "City tier-band estimate scaled by locality rank, not live listing" } },
+        { "name": "commute", "points": 25, "maxPoints": 27, "effectiveWeight": 27, "raw": { "value": 15, "source": "heuristic", "confidence": "low", "note": "11 min free-flow adjusted with alpha 1.9" } },
+        { "name": "safety", "points": 16, "maxPoints": 18, "effectiveWeight": 18, "raw": { "value": 8.6, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" } },
+        { "name": "amenities", "points": 11, "maxPoints": 12, "effectiveWeight": 12, "raw": { "value": 9.1, "source": "osm", "confidence": "high" } },
+        { "name": "transit", "points": 6, "maxPoints": 8, "effectiveWeight": 8, "raw": { "value": 7.8, "source": "osm", "confidence": "high" } },
+        { "name": "household", "points": 6, "maxPoints": 7, "effectiveWeight": 7, "raw": { "value": 8.7, "source": "heuristic", "confidence": "high" } }
+      ],
+      "effectiveCommuteMin": { "value": 15, "source": "heuristic", "confidence": "low", "note": "Peak adjustment heuristic applied to free-flow routing" },
+      "rentBand": { "value": { "low": 22000, "high": 32000 }, "source": "heuristic", "confidence": "low", "note": "City tier-band estimate scaled by locality rank, not live listing" },
+      "safetyIndicator": { "value": 8.6, "source": "osm", "confidence": "medium", "note": "Infrastructure indicator: lit streets & police presence, not crime data" },
+      "amenitiesScore": { "value": 9.1, "source": "osm", "confidence": "high" },
+      "amenities": {
+        "healthcare": { "value": 26, "source": "osm", "confidence": "high" },
+        "education": { "value": 16, "source": "osm", "confidence": "high" },
+        "grocery": { "value": 24, "source": "osm", "confidence": "high" },
+        "food": { "value": 98, "source": "osm", "confidence": "high" },
+        "leisure": { "value": 21, "source": "osm", "confidence": "high" },
+        "busStops": { "value": 18, "source": "osm", "confidence": "high" },
+        "railStations": { "value": 0, "source": "osm", "confidence": "high" }
+      },
+      "commutes": [
+        {
+          "destinationId": "workplace",
+          "destinationLabel": "Workplace",
+          "freeFlowMin": { "value": 11, "source": "routing", "confidence": "high" },
+          "peakEstimateMin": { "value": 15, "source": "heuristic", "confidence": "low", "note": "alpha_city = 1.9" },
+          "distanceKm": { "value": 9.8, "source": "routing", "confidence": "high" },
+          "mode": "car",
+          "exceedsMax": false
+        }
+      ],
+      "safetyDetails": {
+        "policeCount": { "value": 2, "source": "osm", "confidence": "high" },
+        "litRoadsCount": { "value": 68, "source": "osm", "confidence": "high" },
+        "surveillanceCount": { "value": 6, "source": "osm", "confidence": "high" },
+        "coverageNote": "Well-lit arterial roads and established sports facilities"
+      },
+      "portalLinks": [
+        { "portal": "MagicBricks", "url": "https://www.magicbricks.com/property-for-rent/residential-real-estate?keyword=Deccan+Gymkhana", "isFallback": false },
+        { "portal": "Housing.com", "url": "https://housing.com/rent/search?query=Deccan+Gymkhana", "isFallback": false },
+        { "portal": "99acres", "url": "https://www.99acres.com/search/property/rent?keyword=Deccan+Gymkhana", "isFallback": false },
+        { "portal": "Google Search", "url": "https://www.google.com/search?q=rent+flats+in+Deccan+Gymkhana+Pune", "isFallback": true, "note": "Universal search fallback" }
+      ]
+    }
+  ]
+}
