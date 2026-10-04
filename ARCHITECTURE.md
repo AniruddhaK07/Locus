@@ -112,6 +112,29 @@ $R_t = R_{min} + 0.75 \times (R_{max} - R_{min})$.
 
 ---
 
+## 5. Infrastructure Layer (`src/engine/infra/`)
+
+All network communication and client-side persistence pass through dedicated infrastructure modules:
+
+1. **Storage Adapters (`src/engine/infra/storage.ts`):**
+   - `StorageAdapter` interface: `get`, `set`, `delete`, `clear`.
+   - `MemoryStorageAdapter`: In-memory storage for test runners and non-browser runtimes.
+   - `IndexedDBStorageAdapter`: Persistent IndexedDB cache for browsers (`locus_cache_db`), supporting expiration timestamps (`expiresAt`).
+2. **Response Cache (`src/engine/infra/cache.ts`):**
+   - Wraps storage adapter with default 24-hour TTL (`defaultTtlMs = 86_400_000`).
+   - Serves cache hits instantly without triggering network requests or queuing delays.
+3. **Rate-Limiting Queue (`src/engine/infra/queue.ts`):**
+   - Enforces strict concurrency limits (`concurrency`, e.g. 1 for Overpass, 2 for Nominatim/OSRM).
+   - Enforces minimum spacing between request dispatches (`minSpacingMs`, e.g. ≥ 700 ms for Overpass).
+   - Fully supports `AbortSignal` cancellation: pending tasks are removed from the queue without execution.
+4. **Resilient HTTP Client (`src/engine/infra/httpClient.ts`):**
+   - Timeout handling: via caller `signal` combined with request-level timeout.
+   - Retries with exponential backoff and randomized jitter (factor $0.8$ to $1.2$) on HTTP 429 and 5xx (500–504).
+   - Mirror Failover: When configured with `MirrorConfig` (e.g. Overpass mirror pool), automatically fails over to the next healthy mirror upon network error or 5xx response.
+   - Zero bare `fetch` calls in provider or feature code.
+
+---
+
 ## 4. Pipeline Stages
 
 The search pipeline executes progressively through 6 stages:

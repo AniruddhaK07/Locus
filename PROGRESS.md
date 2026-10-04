@@ -2,28 +2,18 @@
 
 ## Resume here
 
-- **Current Phase:** Phase 1 complete & Step B audit finished — starting Phase 2 (Infrastructure layer).
-- **Done in Phase 1 & Step B:**
-  - Defined full domain model in `src/engine/domain/types.ts`: `Measured<T>`, `Preferences`, `AreaSummary`, `AreaDetail`, `SearchState`, `ComparisonResult`, `MethodInfo`, `PortalLink`, `MockScenario`.
-  - Implemented `MockEngine` in `src/engine/mock/mockEngine.ts` supporting all 6 scenarios.
-  - Implemented progressive stage pipeline orchestration simulation.
-  - Created lightweight wireframe stylesheet `src/ui/skeleton.css` (27 lines, strictly ≤ 80 lines).
-  - Built all 8 screens and wireframe controls specified in §5.2 with `data-feature` and `data-state` attributes.
-  - Added dev `ScenarioSwitcher.tsx` and dev catalog route `/_map` (`DevMapPage.tsx`).
-  - Authored comprehensive UI contract manual `docs/UI_CONTRACT.md`.
-  - Pushed initial milestone to `origin` (`main`, tags `phase-0`, `phase-1`).
-  - **Contract Completeness Audit (Step B):**
-    - `Measured<T>` on every displayed value confirmed.
-    - Per-criterion breakdown (`points, maxPoints, effectiveWeight, raw`) confirmed.
-    - `dataCompleteness` and `exceedsMax` flag confirmed.
-    - Free-flow AND peak commute per destination and mode confirmed.
-    - Added `localityErrors?: Record<AreaId, string>` to `SearchState` for explicit per-locality failure tracking.
-    - Stable area IDs (`"{osmType}/{osmId}"`), load-more pagination, and cancel handle confirmed.
-    - Added pure `selectAreas(areas, options)` function in engine API; refactored UI to be purely presentational.
-    - Made `GEO_CONTACT` optional in `.env.example` and `README.md`.
-  - `npm run check` passes 100% (20 unit tests).
-- **In progress:** Phase 2 — Infrastructure layer (HTTP client, rate-limit queue, cache adapter, mirror failover).
-- **Exact next step:** Create `src/engine/infra/` modules.
+- **Current Phase:** Phase 2 complete — starting Phase 3 (Geocoding and locality discovery).
+- **Done in Phase 2:**
+  - Implemented `StorageAdapter` with `MemoryStorageAdapter` and `IndexedDBStorageAdapter` (`src/engine/infra/storage.ts`).
+  - Implemented `ResponseCache` with configurable TTL (`src/engine/infra/cache.ts`).
+  - Implemented `RateLimitQueue` with strict FIFO ordering, configurable concurrency, minimum request spacing, and `AbortSignal` cancellation (`src/engine/infra/queue.ts`).
+  - Implemented `HttpClient` with timeout, retries with exponential backoff & jitter (0.8–1.2x) on 429/5xx, automated mirror failover, response cache integration, and queueing (`src/engine/infra/httpClient.ts`).
+  - Created unit test suite `tests/infra.test.ts` (12 tests) verifying queue ordering, concurrency, spacing, abort propagation, cache TTL expiration, 429 backoff retries, and mirror failover.
+  - Verified no feature code uses bare `fetch`.
+  - `npm run check` passes 100% (32 unit tests across 4 test suites).
+  - Pushed commits up to Step B to `origin/main`.
+- **In progress:** Phase 3 — Geocoding and locality discovery.
+- **Exact next step:** Implement typeahead geocoding provider (Photon), city resolution (Nominatim with relation and enclosing area fallback), and locality discovery provider (Overpass node/way/relation).
 - **How to check:**
   ```bash
   npm run check
@@ -42,7 +32,8 @@
 - **Start Timestamp:** `2026-10-04T10:41:19+05:30`
 - **Phase 0 Completed:** `2026-10-04T11:08:30+05:30`
 - **Phase 1 Completed:** `2026-10-04T11:43:00+05:30`
-- **Repository:** `locus`
+- **Phase 2 Completed:** `2026-10-04T12:05:00+05:30`
+- **Repository:** `https://github.com/AniruddhaK07/Locus.git`
 
 ---
 
@@ -52,7 +43,7 @@
 | :--- | :--- | :--- | :--- | :--- |
 | **0** | Bootstrap and verification | 1.5 h | **DONE** | 2026-10-04T11:08:30+05:30 |
 | **1** | Contract and UI skeleton (Checkpoint) | 3 h | **DONE** | 2026-10-04T11:43:00+05:30 |
-| **2** | Infrastructure layer | 2 h | Pending | — |
+| **2** | Infrastructure layer | 2 h | **DONE** | 2026-10-04T12:05:00+05:30 |
 | **3** | Geocoding and locality discovery | 3 h | Pending | — |
 | **4** | Amenity profile | 2 h | Pending | — |
 | **5** | Commute engine | 3 h | Pending | — |
@@ -63,14 +54,15 @@
 
 ---
 
-## Phase 1 Verification & Acceptance Results
+## Phase 2 Verification & Acceptance Results
 
 1. **Commands Executed:**
-   - `npm run check` $\rightarrow$ Passed (0 TS errors, 0 ESLint errors/warnings, 12 unit tests passed).
-   - `npm run build` $\rightarrow$ Passed in 1.26s (`dist/index.html` 0.39 kB, `dist/assets/index.js` 333 kB).
+   - `npm run check` $\rightarrow$ Passed (0 TS errors, 0 ESLint errors/warnings, 32 unit tests passed).
 2. **Acceptance Criteria Verification:**
-   - Every screen and control in §5.2 exists, tagged with `data-feature` and `data-state`.
-   - Every scenario (`normal`, `slow`, `partial`, `empty`, `error`, `sparse-data`) renders distinct states in mock mode.
-   - `/_map` lists every route, feature ID, and provides direct triggers for every scenario.
-   - ESLint proves the UI layer imports solely from `@engine` (`src/engine/index.ts`).
-   - `docs/UI_CONTRACT.md` delivers complete documentation and types for human UI designers.
+   - Queue ordering: Verified FIFO in `tests/infra.test.ts`.
+   - Queue spacing & concurrency: Verified spacing $\ge$ minSpacingMs and concurrent active tasks $\le$ concurrency.
+   - Retries & Backoff: Verified exponential backoff with jitter on 429 and 503.
+   - Mirror Failover: Verified automated rotation from primary to secondary mirror on 500 error.
+   - Abort Propagation: Verified caller `AbortSignal` cancels waiting tasks and running requests.
+   - Cache TTL: Verified `MemoryStorageAdapter` and `ResponseCache` expire stale entries after TTL.
+   - Zero bare `fetch` in feature code: Verified.
