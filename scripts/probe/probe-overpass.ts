@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const USER_AGENT = "Locus-Probe/0.1 (locus.hackathon@gmail.com)";
+const USER_AGENT = "Locus-Probe/0.1 (https://github.com/locus-app)";
 
 const MIRRORS = [
   { name: "overpass-api.de", base: "https://overpass-api.de/api" },

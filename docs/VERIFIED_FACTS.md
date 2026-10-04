@@ -15,7 +15,7 @@ All entries in this register were established via real network probes executed f
   - Features array with `geometry.coordinates` `[lon, lat]` (Note: GeoJSON order is Longitude, Latitude).
   - Properties include: `osm_type` (`"N"` for node, `"R"` for relation, `"W"` for way), `osm_id`, `name`, `city`, `district`, `state`, `country`, `postcode`, `countrycode`.
   - Relation boundaries also provide an `extent` bounding box `[minLon, maxLat, maxLon, minLat]`.
-- **Policy & Fit:** Photon is explicitly designed for autocomplete/search-as-you-type based on OSM data. Safe for client-side typeahead.
+- **Policy & Fit:** Explicitly designed for autocomplete/search-as-you-type based on OSM data. Safe for client-side typeahead.
 - **Recorded Fixture:** `fixtures/recorded/photon-koramangala.json`
 
 ---
@@ -27,111 +27,79 @@ All entries in this register were established via real network probes executed f
 - **Endpoint Tested:** `https://nominatim.openstreetmap.org/search?q={city}&format=jsonv2&polygon_geojson=1&addressdetails=1&extratags=1`
 - **Reachability:** Verified reachable (~2200 ms with polite 1.2s delay).
 - **CORS Behaviour:** `access-control-allow-origin: *` returned for browser origin.
-- **Identification & Usage Policy:**
-  - Strictly requires valid `User-Agent` identifying the application and contact email (`GEO_CONTACT` e.g. `locus.hackathon@gmail.com`).
-  - Absolute rate limit of 1 request per second.
+- **Identification Policy & Direct Browser Architecture:**
+  - Nominatim asks for identification. In a direct browser environment, browsers forbid setting custom `User-Agent` headers.
+  - Identification can be provided optionally via the `email` URL query parameter (`&email=...`) if configured, or omitted to let Nominatim identify traffic via the browser's `Referer` origin header.
+  - Absolute rate limit: 1 request per second.
   - **Explicit policy rule:** Autocomplete/typeahead is strictly forbidden on OSM Nominatim. Nominatim must only be used on-submit to resolve the selected city.
-- **City Resolution Reality:**
-  - **Bengaluru:** Resolves to administrative relation (`osm_type: "relation"`, `osm_id: 7902476`, place_rank 14, category: "boundary", type: "administrative").
-  - **Delhi:** Resolves to administrative relation (`osm_type: "relation"`, `osm_id: 1942586`, place_rank 8, category: "boundary", type: "administrative").
+- **City Resolution & Enclosing Admin Area Probe:**
+  - **Bengaluru:** Resolves to administrative relation (`osm_type: "relation"`, `osm_id: 7902476`, place_rank 14).
+  - **Delhi:** Resolves to administrative relation (`osm_type: "relation"`, `osm_id: 1942586`, place_rank 8).
   - **Pune:** Top result is a node (`osm_type: "node"`, `osm_id: 16174445`, place_rank 16, category: "place", type: "city"), with `boundingbox: ["18.3613738", "18.6813738", "73.6945071", "74.0145071"]`.
-- **Architectural Takeaway:** Cities do not always resolve to a relation. When `osm_type === "relation"`, Overpass is queried via area ID (`3600000000 + osm_id`). When `osm_type !== "relation"`, Overpass must fall back to the geocoder's exact bounding box with zero padding.
+  - **Enclosing Admin Area Probe (`is_in`):** Probed Overpass `is_in(18.5214, 73.8545)` for Pune. Found 5 enclosing boundaries, including `Pune City Subdistrict` (relation `3610351626`, `admin_level: 6`). Querying localities within this enclosing area returned 82 localities (Katraj, Swargate, Dattawadi, etc.).
+  - **Resolution Strategy:** If city resolves to an administrative relation, use area ID `3600000000 + osm_id`. If it resolves to a node, probe enclosing administrative boundary via `is_in` or fall back to the exact geocoder bounding box with zero padding.
 - **Recorded Fixtures:** `fixtures/recorded/nominatim-bengaluru.json`, `fixtures/recorded/nominatim-pune.json`
 
 ---
 
 ## 3. Overpass API Mirrors & Query Syntax
 
-- **Probe Script:** `scripts/probe/probe-overpass.ts`
+- **Probe Scripts:** `scripts/probe/probe-overpass.ts`, `scripts/probe/probe-independent-overpass.ts`
 - **Probe Date:** 2026-10-04
-- **Endpoint Tested:** `POST {base}/interpreter` with `data={query}` and `GET {base}/status`
 
-### 3.1 Mirror Health & Status
-| Mirror Base | Status | Slots Available | CORS | Notes |
-| :--- | :--- | :--- | :--- | :--- |
-| `https://overpass-api.de/api` | **ALIVE** | 4 slots | `*` | Primary endpoint. Requires `User-Agent` (returns 406 if absent in Node fetch; browser fetch sends native User-Agent). |
-| `https://z.overpass-api.de/api` | **ALIVE** | 4 slots | `*` | Reliable mirror. Same cluster. |
-| `https://lz4.overpass-api.de/api` | **ALIVE** | 2 slots | `*` | Reliable mirror with 2 slots. |
-| `https://overpass.kumi.systems/api` | **DEAD** | 0 | None | Timed out / blocked during probe. |
-| `https://maps.mail.ru/osm/tools/overpass/api` | **DEAD** | 0 | None | Timed out / 504 Gateway Timeout during probe. |
+### 3.1 Mirror Independence & Status
+- **Roland Olbricht Cluster (`overpass-api.de`, `z.overpass-api.de`, `lz4.overpass-api.de`):**
+  - All three returned HTTP 200 with `CORS: *`.
+  - **Independence Reality:** They announce identical backend backplanes (`gall.openstreetmap.de` / `lambert.openstreetmap.de`) and share the same client IP rate limit connection ID (`74182843`). They are **NOT** independent in practice; an IP rate limit hit on one affects all three.
+- **Independent Public Mirrors Probed:**
+  - `https://overpass.kumi.systems/api`: Returned 504 Gateway Timeout during probes.
+  - `https://maps.mail.ru/osm/tools/overpass/api`: Returned 504 Gateway Timeout during probes.
+  - `https://overpass.openstreetmap.fr/api`: Returned 403 Forbidden to cross-origin requests.
+  - `https://overpass.private.coffee/api`: Timed out during probes.
+- **Observed Rate-Limit Behaviour:**
+  - Overpass allocates 2 to 4 simultaneous query slots per IP.
+  - When all slots are busy, Overpass responds with HTTP 429 or status text stating wait time in seconds (`Slot available after ... seconds`).
+  - Spacing requests with ≥ 700 ms and keeping client concurrency to 1 is essential.
 
-### 3.2 Direct Browser Fetch vs Serverless Relay
-- **Finding:** Every active Overpass mirror sends `access-control-allow-origin: *`.
-- **Critical Architectural Fact:** A shared serverless relay funneling all client queries through a single server IP triggers rapid 429 rate-limiting and slot starvation (Overpass allows 2–4 slots per IP). Calling Overpass **directly from each client browser** leverages the individual user's residential IP, completely eliminating the shared bottleneck.
-- **Decision:** Use direct browser requests from the client with mirror failover and local request queue spacing (≥ 700 ms).
-
-### 3.3 Locality Discovery Query & Polygon Reality
+### 3.2 Locality Discovery & Polygon Proportion
 - Tested query on Bengaluru relation area `3607902476`:
-  ```overpass
-  [out:json][timeout:25];
-  area(3607902476)->.searchArea;
-  (
-    nwr["place"~"^(suburb|neighbourhood|quarter)$"](area.searchArea);
-  );
-  out center;
-  ```
-- **Observed Result:** Returned 1,155 elements in 5,989 ms.
-  - Distribution by OSM type: **1,060 nodes, 48 ways, 47 relations**.
-  - **Fact:** 95 neighbourhoods in Bengaluru are mapped as polygons (ways and relations). A node-only query undercounts and drops key localities. Elements must be read via `lat ?? center.lat` and `lon ?? center.lon`.
+  Returned 1,155 elements: 1,060 nodes, 48 ways, 47 relations.
+- **Correction on Polygons:** Polygons accounted for 95 of 1,155 elements (~8.2%). While including `way` and `relation` ensures prominent polygonal neighbourhoods are not lost, **the primary engineering challenge is not polygon extraction, but ranking, pre-filtering by distance, and selecting the top $N=12$ candidates**.
 - **Recorded Fixture:** `fixtures/recorded/overpass-locality-bengaluru.json`
 
-### 3.4 Amenity Profile Query Syntax (Single-Request, Multi-Category)
-- Tested single-request multi-category count query:
-  ```overpass
-  [out:json][timeout:20];
-  nwr["amenity"~"^(hospital|clinic|pharmacy)$"](around:1500, 12.9352, 77.6245)->.health;
-  nwr["amenity"~"^(school|college|kindergarten)$"](around:1500, 12.9352, 77.6245)->.education;
-  nwr["shop"~"^(supermarket|convenience|grocery)$"](around:800, 12.9352, 77.6245)->.grocery;
-  nwr["amenity"~"^(restaurant|cafe|fast_food)$"](around:800, 12.9352, 77.6245)->.food;
-  nwr["leisure"~"^(park|garden|fitness_centre)$"](around:1500, 12.9352, 77.6245)->.leisure;
-  nwr["highway"="bus_stop"](around:500, 12.9352, 77.6245)->.bus;
-  nwr["railway"~"^(station|subway_entrance)$"](around:1500, 12.9352, 77.6245)->.rail;
-
-  .health out count;
-  .education out count;
-  .grocery out count;
-  .food out count;
-  .leisure out count;
-  .bus out count;
-  .rail out count;
-  ```
-- **Observed Result:** Returned HTTP 200 in 2,343 ms.
-  - Returned exactly 7 JSON elements with `type: "count"` and tags `{ nodes, ways, relations, total }`.
-  - Element order strictly matches the order of `.setName out count;` execution.
-  - Example counts observed at Koramangala: Health 79, Education 47, Grocery 23, Food 168, Leisure 58 (48 ways!), Bus 9, Rail 0.
+### 3.3 Amenity Profile Query Syntax (Single-Request Multi-Category)
+- Tested single-request multi-category count query with named sets (`.set out count;`).
+- Returned HTTP 200 in 2,343 ms with exactly 7 count elements corresponding to each named category set.
 - **Recorded Fixture:** `fixtures/recorded/overpass-amenity-counts.json`
 
 ---
 
-## 4. OSRM Routing & Table Endpoints
+## 4. OSRM Routing Profiles & Table Endpoints
 
-- **Probe Script:** `scripts/probe/probe-osrm.ts`
+- **Probe Scripts:** `scripts/probe/probe-osrm.ts`, `scripts/probe/probe-osrm-profiles.ts`
 - **Probe Date:** 2026-10-04
 
-### 4.1 Host Reachability, Profiles, and CORS
-| Host | Endpoint | Profile | Status | Latency | CORS | Code | Notes |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `router.project-osrm.org` | `/route/v1/{p}` | `driving` / `car` | 200 | 285–527 ms | `*` | `Ok` | Supported and active |
-| `router.project-osrm.org` | `/route/v1/{p}` | `bike` / `bicycle` | 200 | 199–396 ms | `*` | `Ok` | Supported and active |
-| `router.project-osrm.org` | `/route/v1/{p}` | `foot` / `walking` | 200 | 145–146 ms | `*` | `Ok` | Supported and active |
-| `router.project-osrm.org` | `/table/v1/{p}` | `driving` / `car` | 200 | 150–156 ms | `*` | `Ok` | **Many-to-one batching verified!** |
-| `routing.openstreetmap.de` | `/routed-car` | `driving` | 200 | 934 ms | `*` | `Ok` | Backup host verified |
-| `routing.openstreetmap.de` | `/routed-bike` | `driving` (path) | 200 | 557 ms | `*` | `Ok` | Backup host verified |
-| `routing.openstreetmap.de` | `/routed-foot` | `driving` (path) | 200 | 209 ms | `*` | `Ok` | Backup host verified |
+### 4.1 Demo Host Profile Deception (`router.project-osrm.org`)
+- **Crucial Finding:** When routing the exact same origin (Manyata) and destination (Koramangala):
+  - `driving`: 1307.7s (17,962.6m)
+  - `car`: 1307.7s (17,962.6m)
+  - `bike`: 1307.7s (17,962.6m) — **Identical**
+  - `foot`: 1307.7s (17,962.6m) — **Identical**
+- **Conclusion:** The public demo host `router.project-osrm.org` completely ignores the bike and foot profile parameters and always routes via the driving engine. **Bike and foot are UNVERIFIED on `router.project-osrm.org`**.
+- **OSRM Demo Server Usage Policy:** Provided strictly for demonstration and testing. No SLA, strict rate limits, and subject to blocking on high traffic.
 
-### 4.2 Table Endpoint Performance
-- 1 source (Manyata Tech Park) to 3 destinations (Koramangala, Indiranagar, Whitefield):
-  - Request: `https://router.project-osrm.org/table/v1/driving/{coords}?sources=0`
-  - Latency: **150 ms**
-  - Durations returned: `[1307.7s, 916.9s, 1474.8s]` (~21.8 min, ~15.3 min, ~24.6 min free-flow).
-- **Conclusion:** Batching 12 candidate localities against 1 primary anchor takes ~150 ms in a single table call, completely avoiding 12 sequential route requests.
+### 4.2 Verified Multi-Modal Host (`routing.openstreetmap.de`)
+- Probing `routing.openstreetmap.de` with separate dedicated endpoints:
+  - `routed-car`: duration = **1307.7s** (~21.8 min), distance = 17,962.6m, `CORS: *`, table duration = `1307.7s`
+  - `routed-bike`: duration = **4089.5s** (~68.2 min), distance = 15,762.8m, `CORS: *`, table duration = `4089.5s`
+  - `routed-foot`: duration = **12272.2s** (~204.5 min), distance = 15,332.2m, `CORS: *`, table duration = `12272.2s`
+- **Decision:** Use `routing.openstreetmap.de` with its dedicated endpoints (`routed-car`, `routed-bike`, `routed-foot`) for authentic multi-modal routing. Both route and table endpoints return valid distinct durations and full `CORS: *`.
+- `engine.method()` will report `car`, `bike`, and `walk` as available and backed by verified distinct OSM routing profiles.
 
 ---
 
 ## 5. Unverified / Heuristic Items Register
 
-The following items cannot be directly measured from free live APIs without accounts or terms violations:
-
-1. **Rent Market Prices:** `UNVERIFIED`. Indian listing portals (MagicBricks, 99acres, Housing, NoBroker) do not provide public unauthenticated APIs and forbid scraping. Rent will use the city-tier starter band table scaled by distance and amenity rank, tagged `source: "heuristic"`, `confidence: "low"`, with user override (`source: "user"`, `confidence: "high"`).
-2. **Real-time Crime / Safety Data:** `UNVERIFIED`. There is no open public safety API for Indian municipal wards. Safety will be based strictly on OSM infrastructure indicators (police stations, lit ways, surveillance nodes) tagged `source: "osm"`, labelled "infrastructure indicator, not crime data", with confidence reduced when coverage is sparse.
-3. **Public Transit Scheduling / GTFS:** `UNVERIFIED`. Real-time or static GTFS for Indian cities (BMTC, DMRC, PMPML) is fragmented or unavailable freely without authentication. Transit mode remains disabled or heuristic in Phase 1-8.
+1. **Rent Market Prices:** `UNVERIFIED`. Public Indian real estate portals do not offer open unauthenticated APIs. Handled via starter tier-band heuristic scaled by accessibility + user override.
+2. **Real-time Crime / Safety Data:** `UNVERIFIED`. No public ward-level crime API in India. Safety is measured solely via OSM infrastructure indicator tags (police stations, lit ways, surveillance nodes), labelled "infrastructure indicator, not crime data".
+3. **Public Transit Real-time GTFS:** `UNVERIFIED`. Public transit schedules/GTFS are fragmented. Transit mode remains disabled or heuristic in Phase 1-8.

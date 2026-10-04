@@ -25,7 +25,7 @@ async function probePhoton() {
     try {
       const res = await fetch(url, {
         headers: {
-          "User-Agent": "Locus-Probe/0.1 (locus.hackathon@gmail.com)"
+          "User-Agent": "Locus-Probe/0.1 (https://github.com/locus-app)"
         }
       });
       const durationMs = Math.round(performance.now() - start);

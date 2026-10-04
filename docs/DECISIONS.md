@@ -8,7 +8,7 @@
 | **DEC-002** | ESLint boundary enforcement via `no-restricted-imports` | 2026-10-04 | Accepted |
 | **DEC-003** | Environment variable management & safety policy handling | 2026-10-04 | Accepted |
 | **DEC-004** | Direct-from-browser architecture (Zero server relay needed) | 2026-10-04 | Accepted |
-| **DEC-005** | OSRM Table endpoint for N-candidate commute calculation | 2026-10-04 | Accepted |
+| **DEC-005** | Multi-modal routing via `routing.openstreetmap.de` (car, bike, foot) | 2026-10-04 | Accepted |
 
 ---
 
@@ -35,24 +35,23 @@
 
 ---
 
-### DEC-003: Environment Variable Management & Safety Policy
-- **Context:** Sensitive file policies prevent direct write manipulation of files named `.env*` by automated tooling.
-- **Decision:** Keep `env.example` in version control as the documentation and configuration template. Instruct the human user to populate `.env` with their specific `GEO_CONTACT` identifier (`locus.hackathon@gmail.com`).
+### DEC-003: Environment Variable Management & Public Client Identity
+- **Context:** Direct browser architecture means all outbound requests are visible to client networks. Sensitive files (`.env*`) cannot be committed or modified by automated tools.
+- **Decision:** Keep `env.example` as tracked template. In direct browser mode, `GEO_CONTACT` is purely optional (passed as `&email=` parameter to Nominatim on-submit if configured in local `.env`, or omitted so Nominatim identifies the application via the browser's `Referer` origin). No real user email is embedded in tracked source files.
 
 ---
 
 ### DEC-004: Direct-from-Browser Architecture (Zero Server Relay)
-- **Context:** §3.2 and §3.6 require deciding between direct browser calls vs a serverless relay (`api/`). If external services block CORS or require secret keys, a relay is mandatory. If services allow CORS, direct browser calls spread load across each user's unique IP, preventing shared Overpass slot starvation.
+- **Context:** §3.2 and §3.6 require deciding between direct browser calls vs a serverless relay (`api/`).
 - **Observed Evidence (from `scripts/probe/*`):**
   - Photon (`https://photon.komoot.io`): `CORS: *`
   - Nominatim (`https://nominatim.openstreetmap.org`): `CORS: *`
   - Overpass active mirrors (`overpass-api.de`, `z.overpass-api.de`, `lz4.overpass-api.de`): `CORS: *`
-  - OSRM (`router.project-osrm.org`, `routing.openstreetmap.de`): `CORS: *`
+  - OSRM multi-modal (`routing.openstreetmap.de`): `CORS: *`
 - **Decision:** Adopt 100% direct-from-browser architecture. No server relay (`api/`) is required. Client-side HTTP infrastructure will handle rate-limiting queues, backoff with jitter, and mirror failover.
 
 ---
 
-### DEC-005: OSRM Table Endpoint for Commute Batching
-- **Context:** §4.3 suggests preferring a many-to-one `table` request over $N$ individual route calls.
-- **Observed Evidence:** Live probe demonstrated `/table/v1/driving/{coords}?sources=0` computes driving times for 3 destinations in 150 ms with `CORS: *`.
-- **Decision:** Use OSRM `/table/v1/` endpoint to batch compute commute times from workplace anchor to all $N=12$ candidate localities in a single request. Fall back to individual route requests only if table fails.
+### DEC-005: Multi-Modal Routing via `routing.openstreetmap.de`
+- **Context:** Live probes demonstrated that `router.project-osrm.org` ignores `bike` and `foot` profiles (returning identical car durations).
+- **Decision:** Use `routing.openstreetmap.de` which provides dedicated `routed-car`, `routed-bike`, and `routed-foot` endpoints with `/table` and `/route` support and verified distinct timings.

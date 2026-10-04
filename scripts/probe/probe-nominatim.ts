@@ -43,7 +43,7 @@ async function probeNominatim() {
 
       const res = await fetch(url, {
         headers: {
-          "User-Agent": "Locus-Probe/0.1 (locus.hackathon@gmail.com)",
+          "User-Agent": "Locus-Probe/0.1 (https://github.com/locus-app)",
           "Origin": "http://localhost:5173"
         }
       });
