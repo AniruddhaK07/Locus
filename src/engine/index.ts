@@ -53,15 +53,22 @@ let defaultEngine: CompatibleEngine | null = null;
 
 export function getEngine(opts?: EngineOptions): CompatibleEngine {
   if (!defaultEngine) {
+    const isTest = typeof process !== "undefined" && Boolean(process.env.VITEST);
     const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env;
     let mode: "live" | "mock" | "snapshot" = "mock";
-    if (metaEnv?.VITE_ENGINE_MODE === "live") {
-      mode = "live";
-    } else if (metaEnv?.VITE_ENGINE_MODE === "snapshot") {
-      mode = "snapshot";
+    if (!isTest) {
+      if (metaEnv?.VITE_ENGINE_MODE === "live") {
+        mode = "live";
+      } else if (metaEnv?.VITE_ENGINE_MODE === "snapshot") {
+        mode = "snapshot";
+      }
     }
     const finalMode = opts?.mode ?? mode;
     defaultEngine = createEngine({ mode: finalMode, ...opts });
   }
   return defaultEngine;
+}
+
+export function resetDefaultEngine(): void {
+  defaultEngine = null;
 }
