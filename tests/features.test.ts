@@ -177,31 +177,109 @@ describe("Phase 8: Features — Compare, Saved, and Portal Links", () => {
   });
 
   describe("Portal Link Builders (§4.7)", () => {
-    it("generates verified search query links without guessing slug IDs", () => {
+    it("generates site-scoped Google search query links without guessing unverified URL slugs", () => {
       const links = buildPortalLinks("Koramangala 4th Block", "Bengaluru");
 
       expect(links).toHaveLength(4);
 
       // MagicBricks
-      const mb = links.find((l) => l.portal === "MagicBricks");
-      expect(mb?.url).toContain("keyword=Koramangala%204th%20Block%20Bengaluru");
+      const mb = links.find((l) => l.portal.toLowerCase().includes("magicbricks"));
+      expect(mb?.portal).toBe("Search MagicBricks listings");
+      expect(mb?.note).toBe("Opens a Google search limited to this site");
       expect(mb?.isFallback).toBe(false);
+      expect(mb?.url).toBe(
+        `https://www.google.com/search?q=${encodeURIComponent("rent flats Koramangala 4th Block Bengaluru site:magicbricks.com")}`
+      );
 
       // Housing.com
-      const housing = links.find((l) => l.portal === "Housing.com");
-      expect(housing?.url).toContain("search?q=Koramangala%204th%20Block%20Bengaluru");
+      const housing = links.find((l) => l.portal.toLowerCase().includes("housing.com"));
+      expect(housing?.portal).toBe("Search Housing.com listings");
+      expect(housing?.note).toBe("Opens a Google search limited to this site");
       expect(housing?.isFallback).toBe(false);
+      expect(housing?.url).toBe(
+        `https://www.google.com/search?q=${encodeURIComponent("rent flats Koramangala 4th Block Bengaluru site:housing.com")}`
+      );
 
       // 99acres
-      const acres = links.find((l) => l.portal === "99acres");
-      expect(acres?.url).toContain("keyword=Koramangala%204th%20Block%20Bengaluru");
+      const acres = links.find((l) => l.portal.toLowerCase().includes("99acres"));
+      expect(acres?.portal).toBe("Search 99acres listings");
+      expect(acres?.note).toBe("Opens a Google search limited to this site");
       expect(acres?.isFallback).toBe(false);
+      expect(acres?.url).toBe(
+        `https://www.google.com/search?q=${encodeURIComponent("rent flats Koramangala 4th Block Bengaluru site:99acres.com")}`
+      );
 
       // Universal search fallback
       const fallback = links.find((l) => l.isFallback);
       expect(fallback?.portal).toBe("Web Search");
-      expect(fallback?.url).toContain("google.com/search?q=");
-      expect(fallback?.url).toContain("flats%20for%20rent%20in%20Koramangala%204th%20Block%20Bengaluru");
+      expect(fallback?.note).toBe("Universal fallback search query");
+      expect(fallback?.url).toBe(
+        `https://www.google.com/search?q=${encodeURIComponent("flats for rent in Koramangala 4th Block Bengaluru")}`
+      );
+
+      // Verify every link uses HTTPS on google.com
+      for (const link of links) {
+        expect(link.url.startsWith("https://www.google.com/search?q=")).toBe(true);
+      }
+    });
+
+    it("handles missing city by scoping queries strictly to locality", () => {
+      const links = buildPortalLinks("Indiranagar");
+      expect(links).toHaveLength(4);
+
+      const mb = links.find((l) => l.portal.toLowerCase().includes("magicbricks"));
+      expect(mb?.url).toBe(
+        `https://www.google.com/search?q=${encodeURIComponent("rent flats Indiranagar site:magicbricks.com")}`
+      );
+
+      const fallback = links.find((l) => l.isFallback);
+      expect(fallback?.url).toBe(
+        `https://www.google.com/search?q=${encodeURIComponent("flats for rent in Indiranagar")}`
+      );
+
+      for (const link of links) {
+        expect(link.url.startsWith("https://www.google.com/search?q=")).toBe(true);
+      }
+    });
+
+    it("handles special characters and unicode names with proper URL encoding", () => {
+      const links = buildPortalLinks("Mallēshwaram & Vyalikaval #5", "Bengaluru / Urban");
+      expect(links).toHaveLength(4);
+
+      const mb = links.find((l) => l.portal.toLowerCase().includes("magicbricks"));
+      expect(mb?.url).toBe(
+        `https://www.google.com/search?q=${encodeURIComponent("rent flats Mallēshwaram & Vyalikaval #5 Bengaluru / Urban site:magicbricks.com")}`
+      );
+      // Ensure raw special chars are percent-encoded
+      expect(mb?.url).toContain("%26"); // &
+      expect(mb?.url).toContain("%23"); // #
+      expect(mb?.url).toContain("%2F"); // /
+      expect(mb?.url).toContain("%C4%93"); // ē
+
+      for (const link of links) {
+        expect(link.url.startsWith("https://www.google.com/search?q=")).toBe(true);
+      }
+    });
+
+    it("ensures every generated URL uses HTTPS protocol on google.com", () => {
+      const testCases = [
+        { area: "Whitefield", city: "Bengaluru" },
+        { area: "Shivajinagar", city: undefined },
+        { area: "Connaught Place", city: "New Delhi" },
+        { area: "Kothrud", city: "Pune" }
+      ];
+
+      for (const tc of testCases) {
+        const links = buildPortalLinks(tc.area, tc.city);
+        expect(links).toHaveLength(4);
+        for (const link of links) {
+          const parsed = new URL(link.url);
+          expect(parsed.protocol).toBe("https:");
+          expect(parsed.hostname).toBe("www.google.com");
+          expect(parsed.pathname).toBe("/search");
+          expect(parsed.searchParams.get("q")).toBeTruthy();
+        }
+      }
     });
   });
 });

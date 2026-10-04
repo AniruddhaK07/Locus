@@ -160,7 +160,7 @@
    - Multi-area side-by-side comparison: `compareAreas` formats comparative metrics for up to 3 candidate areas across match score, commute, rent, amenities, safety, and completeness.
    - Winner logic: Evaluates `higherIsBetter` vs `lowerIsBetter`; tie conditions produce `winnerId = undefined` (no arbitrary winner chosen); real measured values always win against missing `null` values.
    - Saved shortlist store: `SavedStore` manages IDs with persistent storage, listeners, and cross-tab `StorageEvent` synchronization.
-   - Portal links: `buildPortalLinks` constructs queries for MagicBricks, Housing.com, 99acres, and always appends a resilient Google search query fallback (`https://www.google.com/search?q=rent+flats+in+{area}+{city}`) with zero fragile slug guessing.
+   - Portal links: `buildPortalLinks` constructs site-scoped Google search queries for MagicBricks, Housing.com, 99acres, and universal Web Search fallback (`https://www.google.com/search?q=...`) with zero fragile direct slug guessing.
 
 ---
 

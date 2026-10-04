@@ -319,7 +319,8 @@ The search pipeline executes progressively through 6 stages:
    - Reactive subscriptions: `subscribe(cb)` notifies UI subscribers on every mutation.
 
 3. **Portal Link Builders (`portals.ts`):**
-   - Function: `buildPortalLinks(area: AreaSummary, city?: string): PortalLink[]`
-   - Supports verified rental platforms: MagicBricks, Housing.com, 99acres.
-   - Eliminates brittle slug guessing: uses search query parameters (`?keyword=...` or `?q=...`).
-   - Universal Fallback: Always appends a verified Google Search fallback query (`https://www.google.com/search?q=rent+flats+in+{area}+{city}`) ensuring the user always has a guaranteed working search link.
+   - Function: `buildPortalLinks(areaName: string, cityName?: string): PortalLink[]`
+   - Scopes searches to leading rental platforms (MagicBricks, Housing.com, 99acres) using verified Google search queries (`site:magicbricks.com`, `site:housing.com`, `site:99acres.com`).
+   - Eliminates brittle direct URL guessing and anti-bot blocks.
+   - Universal Fallback: Always appends a verified Google Search fallback query (`https://www.google.com/search?q=flats+for+rent+in+{area}+{city}`) ensuring the user always has a guaranteed working search link.
+   - All generated links strictly use HTTPS on google.com and handle unicode, special characters, and missing cities.

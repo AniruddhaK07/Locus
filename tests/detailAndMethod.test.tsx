@@ -64,10 +64,14 @@ describe("Phase U3: Area Detail & Methodology Screens", () => {
 
     const mb = portals.find((p) => p.portal.toLowerCase().includes("magicbricks"));
     expect(mb).toBeDefined();
+    expect(mb?.portal).toBe("Search MagicBricks listings");
+    expect(mb?.note).toBe("Opens a Google search limited to this site");
     expect(mb?.url).toContain("Koramangala");
+    expect(mb?.url.startsWith("https://www.google.com/search?q=")).toBe(true);
 
     const fallback = portals.find((p) => p.isFallback);
     expect(fallback).toBeDefined();
     expect(fallback?.url).toContain("google.com/search");
+    expect(fallback?.url.startsWith("https://www.google.com/search?q=")).toBe(true);
   });
 });
