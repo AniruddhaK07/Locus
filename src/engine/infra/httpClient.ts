@@ -78,9 +78,12 @@ export class HttpClient {
 
     const executeWithMirror = async (mirrorIndex: number): Promise<T> => {
       const baseUrl = baseUrls[mirrorIndex % baseUrls.length];
-      const fullUrl = endpointPath.startsWith("/")
-        ? `${baseUrl}${endpointPath}`
-        : `${baseUrl}/${endpointPath}`;
+      let fullUrl = baseUrl;
+      if (endpointPath) {
+        fullUrl = endpointPath.startsWith("/")
+          ? `${baseUrl}${endpointPath}`
+          : `${baseUrl}/${endpointPath}`;
+      }
 
       // Helper for a single network attempt
       const attemptFetch = async (attempt: number): Promise<T> => {
@@ -181,4 +184,29 @@ export class HttpClient {
 
     throw lastError;
   }
+
+  async get<T>(target: string | MirrorConfig, opts?: Omit<RequestOptions, "method">): Promise<T> {
+    return this.request<T>(target, "", { ...opts, method: "GET" });
+  }
+
+  async post<T>(
+    target: string | MirrorConfig,
+    endpointPathOrBody?: string,
+    bodyOrOpts?: string | Omit<RequestOptions, "method">,
+    opts?: Omit<RequestOptions, "method" | "body">
+  ): Promise<T> {
+    // Overload 1: post(target, body, opts)
+    if (typeof bodyOrOpts === "object" || bodyOrOpts === undefined) {
+      const body = endpointPathOrBody;
+      const options = bodyOrOpts as Omit<RequestOptions, "method"> | undefined;
+      return this.request<T>(target, "", { ...options, method: "POST", body });
+    }
+    // Overload 2: post(target, endpointPath, body, opts)
+    return this.request<T>(target, endpointPathOrBody ?? "", {
+      ...opts,
+      method: "POST",
+      body: bodyOrOpts
+    });
+  }
 }
+

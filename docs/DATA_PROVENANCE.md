@@ -37,3 +37,22 @@ This document tracks every numeric metric and qualitative indicator produced by 
 - **Safety Infrastructure (Police, Lit streets):** 1,500 meters.
 
 *Note: The radius queried in Overpass must strictly equal the radius reported in the UI.*
+
+---
+
+## 4. Geocoding & Locality Discovery Provenance
+
+1. **Place Typeahead Suggestions (`suggestPlaces`):**
+   - Source: OpenStreetMap data indexed via Komoot Photon API.
+   - Geometry: GeoJSON point coordinates converted directly to `{lat, lon}`.
+   - Stable IDs: Prefixed with OSM entity type: `node/<id>`, `way/<id>`, `relation/<id>`.
+2. **City Resolution:**
+   - Source: OSM Nominatim forward search.
+   - Administrative boundary relation prioritized (`relationId`).
+   - If resolved to node/way, exact geocoder bounding box `[south, north, west, east]` is used with zero padding.
+3. **Locality Discovery:**
+   - Source: Overpass API querying `nwr["place"~"^(suburb|neighbourhood|quarter)$"]`.
+   - Node lat/lon or way/relation centroid `center.lat` / `center.lon` used directly.
+   - Unnamed elements discarded.
+   - Spatial deduplication eliminates records within 500m sharing normalized name.
+

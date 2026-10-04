@@ -2,21 +2,21 @@
 
 ## Resume here
 
-- **Current Phase:** Phase 2 complete — starting Phase 3 (Geocoding and locality discovery).
-- **Done in Phase 2:**
-  - Implemented `StorageAdapter` with `MemoryStorageAdapter` and `IndexedDBStorageAdapter` (`src/engine/infra/storage.ts`).
-  - Implemented `ResponseCache` with configurable TTL (`src/engine/infra/cache.ts`).
-  - Implemented `RateLimitQueue` with strict FIFO ordering, configurable concurrency, minimum request spacing, and `AbortSignal` cancellation (`src/engine/infra/queue.ts`).
-  - Implemented `HttpClient` with timeout, retries with exponential backoff & jitter (0.8–1.2x) on 429/5xx, automated mirror failover, response cache integration, and queueing (`src/engine/infra/httpClient.ts`).
-  - Created unit test suite `tests/infra.test.ts` (12 tests) verifying queue ordering, concurrency, spacing, abort propagation, cache TTL expiration, 429 backoff retries, and mirror failover.
-  - Verified no feature code uses bare `fetch`.
-  - `npm run check` passes 100% (32 unit tests across 4 test suites).
-  - Pushed commits up to Step B to `origin/main`.
-- **In progress:** Phase 3 — Geocoding and locality discovery.
-- **Exact next step:** Implement typeahead geocoding provider (Photon), city resolution (Nominatim with relation and enclosing area fallback), and locality discovery provider (Overpass node/way/relation).
+- **Current Phase:** Phase 3 complete — starting Phase 4 (Amenity profile).
+- **Done in Phase 3:**
+  - Implemented `PhotonGeocodingProvider` (`src/engine/providers/geocoding/photon.ts`) for typeahead place suggestions with GeoJSON parsing.
+  - Implemented `NominatimGeocodingProvider` (`src/engine/providers/geocoding/nominatim.ts`) for on-submit city resolution, identifying administrative relations or falling back to exact bounding box with zero padding.
+  - Implemented `OverpassLocalityProvider` (`src/engine/providers/localities/overpass.ts`) querying `nwr["place"~"^(suburb|neighbourhood|quarter)$"]` inside area IDs or bounding boxes, extracting centroids across nodes, ways, and relations.
+  - Implemented geographic utilities (`src/engine/domain/geo.ts`) for Haversine distances, locality name normalization, spatial deduplication within 500m, and anchor-relative candidate ranking.
+  - Created parser test suite `tests/parsers.test.ts` (10 tests) verifying parsers against recorded fixtures (`photon-koramangala.json`, `nominatim-bengaluru.json`, `nominatim-pune.json`, `overpass-locality-bengaluru.json`).
+  - Created and executed live smoke test script `scripts/smoke.ts` (`npm run smoke`) verifying ≥ 12 real localities discovered for Bengaluru (metro, 1,069 discovered) and Pune (smaller/node city, 138 discovered) with zero hardcoded data.
+  - Verified `npm run check` passes 100% (42 unit tests across 5 test suites).
+- **In progress:** Phase 4 — Amenity profile.
+- **Exact next step:** Implement single-request multi-category amenity count query (`.set out count;`), relative normalization (`log1p` + min-max), and coverage/confidence indicators.
 - **How to check:**
   ```bash
   npm run check
+  npm run smoke
   ```
 - **Known gaps:**
   - Multi-modal routing uses `routing.openstreetmap.de` (car, bike, foot verified; demo host `router.project-osrm.org` only supports driving).
@@ -33,6 +33,7 @@
 - **Phase 0 Completed:** `2026-10-04T11:08:30+05:30`
 - **Phase 1 Completed:** `2026-10-04T11:43:00+05:30`
 - **Phase 2 Completed:** `2026-10-04T12:05:00+05:30`
+- **Phase 3 Completed:** `2026-10-04T12:32:00+05:30`
 - **Repository:** `https://github.com/AniruddhaK07/Locus.git`
 
 ---
@@ -44,7 +45,7 @@
 | **0** | Bootstrap and verification | 1.5 h | **DONE** | 2026-10-04T11:08:30+05:30 |
 | **1** | Contract and UI skeleton (Checkpoint) | 3 h | **DONE** | 2026-10-04T11:43:00+05:30 |
 | **2** | Infrastructure layer | 2 h | **DONE** | 2026-10-04T12:05:00+05:30 |
-| **3** | Geocoding and locality discovery | 3 h | Pending | — |
+| **3** | Geocoding and locality discovery | 3 h | **DONE** | 2026-10-04T12:32:00+05:30 |
 | **4** | Amenity profile | 2 h | Pending | — |
 | **5** | Commute engine | 3 h | Pending | — |
 | **6** | Scoring engine and explanations | 2.5 h | Pending | — |
@@ -66,3 +67,19 @@
    - Abort Propagation: Verified caller `AbortSignal` cancels waiting tasks and running requests.
    - Cache TTL: Verified `MemoryStorageAdapter` and `ResponseCache` expire stale entries after TTL.
    - Zero bare `fetch` in feature code: Verified.
+
+---
+
+## Phase 3 Verification & Acceptance Results
+
+1. **Commands Executed:**
+   - `npm run check` $\rightarrow$ Passed (0 TS errors, 0 ESLint errors/warnings, 42 unit tests passed across 5 suites).
+   - `npm run smoke` $\rightarrow$ Passed live smoke verification for Bengaluru (metro) and Pune (node city) with zero hardcoded data.
+2. **Acceptance Criteria Verification:**
+   - Parser tests: Tested against recorded fixtures `photon-koramangala.json`, `nominatim-bengaluru.json`, `nominatim-pune.json`, `overpass-locality-bengaluru.json` in `tests/parsers.test.ts`.
+   - Centroids: Extracted across nodes, ways, and relations using `lat ?? center.lat`, `lon ?? center.lon`.
+   - Stable IDs: Formatted consistently as `{type}/{id}` (e.g. `node/7301358178`, `way/257906450`).
+   - Deduplication: Normalized names and 500m proximity threshold verified; prioritizes relation/way geometry over nodes.
+   - Anchor distance ranking: Candidates ordered ascending by Haversine distance to primary workplace/anchor.
+   - Bounding box fallback: Pune node fallback with exact bounding box and zero padding verified live.
+

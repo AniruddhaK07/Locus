@@ -103,3 +103,56 @@ All entries in this register were established via real network probes executed f
 1. **Rent Market Prices:** `UNVERIFIED`. Public Indian real estate portals do not offer open unauthenticated APIs. Handled via starter tier-band heuristic scaled by accessibility + user override.
 2. **Real-time Crime / Safety Data:** `UNVERIFIED`. No public ward-level crime API in India. Safety is measured solely via OSM infrastructure indicator tags (police stations, lit ways, surveillance nodes), labelled "infrastructure indicator, not crime data".
 3. **Public Transit Real-time GTFS:** `UNVERIFIED`. Public transit schedules/GTFS are fragmented. Transit mode remains disabled or heuristic in Phase 1-8.
+
+---
+
+## 6. Phase 3 Locality Discovery & Geocoding Verification
+
+- **Verification Date:** 2026-10-04
+- **Verification Script:** `npm run smoke` (`scripts/smoke.ts`)
+- **External Services Tested Live:** Photon (`https://photon.komoot.io/api`), Nominatim (`https://nominatim.openstreetmap.org`), Overpass API (`https://overpass-api.de/api`).
+
+### 6.1 Metro City Discovery (Bengaluru)
+- **Photon Suggestion:** Returned 5 suggestions in 1,058 ms (Top: `relation/7902476` at `[12.9768, 77.5901]`).
+- **Nominatim City Resolution:** Resolved in 1,327 ms to administrative boundary relation `7902476` (BBMP), bounding box `[12.8335, 13.1426, 77.4599, 77.7841]`.
+- **Overpass Locality Query:** Queried `area(3607902476)` for `nwr["place"~"^(suburb|neighbourhood|quarter)$"]`.
+  - Discovered: **1,069 candidate localities** in 5,630 ms.
+  - Selected Top 12 (ranked by distance to city anchor):
+    1. Fair Field Layout (`node/7301358178`) at `[12.9854, 77.5863]` — 1.04 km
+    2. Cubbonpet (`node/429921856`) at `[12.9685, 77.5852]` — 1.06 km
+    3. D'Souza Layout (`node/10298313288`) at `[12.9696, 77.5968]` — 1.08 km
+    4. Gandhinagar (`node/429697299`) at `[12.9772, 77.5800]` — 1.09 km
+    5. Sampangirama Nagar (`node/428464052`) at `[12.9665, 77.5923]` — 1.17 km
+    6. Shanthala Nagar (`node/459815995`) at `[12.9714, 77.5994]` — 1.18 km
+    7. Sampangi Rama Nagara (`way/257906450`) at `[12.9652, 77.5921]` — 1.31 km (Polygonal centroid!)
+    8. High Grounds (`node/665045361`) at `[12.9865, 77.5831]` — 1.32 km
+    9. Ganigarpet (`node/4209390935`) at `[12.9668, 77.5833]` — 1.33 km
+    10. Srikantan Layout (`node/12120352167`) at `[12.9881, 77.5820]` — 1.53 km
+    11. Balepet (`node/429921863`) at `[12.9731, 77.5759]` — 1.59 km
+    12. Mamulpete (`node/4209420893`) at `[12.9687, 77.5778]` — 1.60 km
+
+### 6.2 Smaller / Node City Discovery (Pune)
+- **Photon Suggestion:** Returned 5 suggestions in 1,237 ms (Top: `node/16174445` at `[18.5214, 73.8545]`).
+- **Nominatim City Resolution:** Resolved in 1,018 ms to city node `16174445`. Bounding box fallback used with zero padding: `[18.3614, 18.6814, 73.6945, 74.0145]`.
+- **Overpass Locality Query:** Queried bounding box for `nwr["place"~"^(suburb|neighbourhood|quarter)$"]`.
+  - Discovered: **138 candidate localities** in 15,688 ms.
+  - Selected Top 12 (ranked by distance to city anchor):
+    1. Shaniwar Peth (`node/2266580379`) at `[18.5193, 73.8525]` — 0.32 km
+    2. Kasba Peth (`node/245647083`) at `[18.5219, 73.8583]` — 0.40 km
+    3. Mangalwar Peth (`node/2258420056`) at `[18.5243, 73.8592]` — 0.60 km
+    4. Narayan Peth (`node/672156914`) at `[18.5156, 73.8511]` — 0.74 km
+    5. Shukrawar Peth (`node/1645621271`) at `[18.5114, 73.8540]` — 1.12 km
+    6. Somwar Peth (`node/1232209872`) at `[18.5221, 73.8652]` — 1.13 km
+    7. Shivajinagar (`node/1229128806`) at `[18.5295, 73.8478]` — 1.14 km
+    8. Guruwar Peth (`node/1645591500`) at `[18.5114, 73.8576]` — 1.16 km
+    9. Sadashiv Peth (`node/2266580378`) at `[18.5108, 73.8502]` — 1.26 km
+    10. Ganesh Peth (`node/245646887`) at `[18.5154, 73.8647]` — 1.27 km
+    11. Deccan Gymkhana (`node/674076717`) at `[18.5159, 73.8412]` — 1.53 km
+    12. Navi Peth (`node/245646635`) at `[18.5093, 73.8441]` — 1.73 km
+
+### 6.3 Technical Takeaways
+- Zero hardcoded localities or coordinates used.
+- Stable IDs (`{type}/{id}`) reliably generated across nodes and ways.
+- Centroids for polygon ways (`Sampangi Rama Nagara` `way/257906450`) accurately extracted via `center.lat` / `center.lon`.
+- Spatial deduplication eliminates redundant records within 500m while preserving relation/way geometry over nodes.
+

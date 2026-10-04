@@ -59,6 +59,7 @@ Users specify a city, a workplace, up to 3 regular destinations, a budget range,
 - `npm run preview`: Preview production build locally.
 - `npm run test`: Run unit and contract tests via Vitest.
 - `npm run lint`: Lint TypeScript and React codebase via ESLint.
+- `npm run smoke`: Run live smoke test against external OSM/Photon/Overpass services.
 
 ---
 

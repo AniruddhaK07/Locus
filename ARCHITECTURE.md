@@ -153,3 +153,32 @@ The search pipeline executes progressively through 6 stages:
 - **OSM Nominatim (`https://nominatim.openstreetmap.org`):** On-submit city boundary resolution only. Identified via optional email query param or Referer origin. Autocomplete strictly forbidden on Nominatim.
 - **Overpass API (`https://overpass-api.de/api`):** Roland Olbricht cluster. Concurrency = 1 with ≥ 700 ms spacing to respect IP slot limits (2–4 slots). Direct browser queries avoid shared server IP starvation.
 - **OSRM Multi-Modal (`https://routing.openstreetmap.de`):** Dedicated endpoints (`routed-car`, `routed-bike`, `routed-foot`) supporting route and `/table` matrix queries with `CORS: *`. Demo host `router.project-osrm.org` used only for car fallback.
+
+---
+
+## 6. Geocoding & Locality Discovery Architecture (`src/engine/providers/`)
+
+1. **Typeahead Suggestions (`PhotonGeocodingProvider`):**
+   - Direct queries to Komoot Photon API (`/api/?q=...&limit=5`).
+   - Normalizes GeoJSON Point geometry `[lon, lat]` into numeric `lat` and `lon`.
+   - Generates stable IDs formatted as `{osmType}/{osmId}`.
+
+2. **On-Submit City Boundary Resolution (`NominatimGeocodingProvider`):**
+   - Strictly single on-submit call to Nominatim with optional contact identifier.
+   - Evaluates search results to identify administrative relations (`category: boundary`, `type: administrative`, or `addresstype: city`).
+   - Computes Overpass area ID (`3600000000 + relationId`) when relation exists.
+   - Falls back gracefully to node/way with exact geocoder bounding box (`[south, north, west, east]`) with zero artificial padding.
+
+3. **Locality Discovery (`OverpassLocalityProvider`):**
+   - Executes broad query for `nwr["place"~"^(suburb|neighbourhood|quarter)$"]` inside the city area or bounding box.
+   - Extracts centroids across all three geometry primitives (`lat ?? center.lat`, `lon ?? center.lon`).
+   - Generates stable IDs formatted as `{type}/{id}`.
+   - Drops unnamed elements.
+
+4. **Spatial Deduplication & Ranking (`src/engine/domain/geo.ts`):**
+   - Deduplicates candidates sharing normalized names within a 500m proximity threshold.
+   - Preserves relation/way geometries over nodes during deduplication.
+   - Computes Haversine great-circle distance to the user's primary anchor (workplace).
+   - Pre-filters impossible candidates exceeding theoretical maximum travel distance.
+   - Selects top $N=12$ candidates (configurable) nearest to anchor, supporting offset pagination ("load more").
+
