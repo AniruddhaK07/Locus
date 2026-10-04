@@ -182,3 +182,27 @@ The search pipeline executes progressively through 6 stages:
    - Pre-filters impossible candidates exceeding theoretical maximum travel distance.
    - Selects top $N=12$ candidates (configurable) nearest to anchor, supporting offset pagination ("load more").
 
+---
+
+## 7. Amenity Profiling & Normalization Architecture (`src/engine/providers/amenities/` & `src/engine/scoring/`)
+
+1. **Single-Request Multi-Category Counting (`OverpassAmenityProvider`):**
+   - Executes a unified Overpass QL query using 10 named sets (`.set out count;`):
+     - 7 amenity categories: healthcare (1500m), education (1500m), grocery (800m), food & dining (800m), leisure (1500m), bus stops (500m), rail/metro stations (1500m).
+     - 3 safety infrastructure categories: police (1500m), lit roads (1500m), surveillance (1500m).
+   - Guarantees $O(1)$ network requests per locality instead of $O(K)$ category queries, minimizing slot usage and avoiding rate limit starvation.
+   - Preserves `nwr` elements to prevent polygon undercounting in schools, hospitals, and parks.
+
+2. **Strict Null-vs-Zero Provenance:**
+   - Real zero: An empty category in OSM yields `value: 0`, `source: "osm"`.
+   - Query failure: Network timeouts or Overpass 429s yield `value: null`, `source: "unavailable"`, accompanied by an explicit descriptive `note`.
+   - Zero fabricated defaults (`|| 0`) are used anywhere in the calculation path.
+
+3. **Relative Normalization (`src/engine/scoring/amenityScores.ts`):**
+   - Applies logarithmic scaling: $y = \ln(1 + \text{count})$.
+   - When candidate set $M \ge 5$, computes min-max scaling relative to other candidates in the search:
+     $$s = 10 \times \frac{y - y_{\min}}{y_{\max} - y_{\min}}$$
+   - When $M < 5$, falls back to documented heuristic reference saturation ceilings (`ABSOLUTE_REFERENCE_CEILINGS`).
+   - Computes blended overall Amenities Score (0–10) and Transit Access Score (0–10) renormalized across non-null categories.
+
+

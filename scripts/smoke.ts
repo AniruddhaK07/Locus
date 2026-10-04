@@ -16,6 +16,7 @@ import { MemoryStorageAdapter } from "../src/engine/infra/storage";
 import { NominatimGeocodingProvider } from "../src/engine/providers/geocoding/nominatim";
 import { PhotonGeocodingProvider } from "../src/engine/providers/geocoding/photon";
 import { OverpassLocalityProvider } from "../src/engine/providers/localities/overpass";
+import { OverpassAmenityProvider } from "../src/engine/providers/amenities/overpass";
 
 // Parse CLI flags
 function getArg(flag: string): string | undefined {
@@ -30,14 +31,15 @@ async function runSmokeForCity(
   cityInput: string,
   nominatim: NominatimGeocodingProvider,
   photon: PhotonGeocodingProvider,
-  overpass: OverpassLocalityProvider
+  overpass: OverpassLocalityProvider,
+  amenityProvider: OverpassAmenityProvider
 ) {
   console.log(`\n======================================================`);
   console.log(`  Live Smoke Test: ${cityInput}`);
   console.log(`======================================================`);
 
   // Step 1: Typeahead Suggestions via Photon
-  console.log(`\n[1/3] Testing Photon typeahead suggestions for "${cityInput}"...`);
+  console.log(`\n[1/4] Testing Photon typeahead suggestions for "${cityInput}"...`);
   const t0 = performance.now();
   const suggestions = await photon.suggest(cityInput);
   const tPhoton = Math.round(performance.now() - t0);
@@ -48,7 +50,7 @@ async function runSmokeForCity(
   console.log(`  Top suggestion: "${suggestions[0].name}" (${suggestions[0].id}) at [${suggestions[0].lat.toFixed(4)}, ${suggestions[0].lon.toFixed(4)}]`);
 
   // Step 2: City Resolution via Nominatim
-  console.log(`\n[2/3] Resolving city boundary via Nominatim...`);
+  console.log(`\n[2/4] Resolving city boundary via Nominatim...`);
   const t1 = performance.now();
   const resolution = await nominatim.resolveCity(cityInput);
   const tNom = Math.round(performance.now() - t1);
@@ -60,7 +62,7 @@ async function runSmokeForCity(
   console.log(`    Source Note: ${resolution.sourceNote}`);
 
   // Step 3: Locality Discovery via Overpass
-  console.log(`\n[3/3] Discovering candidate localities via Overpass...`);
+  console.log(`\n[3/4] Discovering candidate localities via Overpass...`);
   const t2 = performance.now();
   const anchor = { lat: resolution.lat, lon: resolution.lon };
   const localityResult = await overpass.discoverLocalities(resolution, anchor, { limit: 12 });
@@ -80,11 +82,30 @@ async function runSmokeForCity(
     );
   });
 
+  // Step 4: Amenity Profiling for Top Locality
+  const topLocality = localityResult.localities[0];
+  console.log(`\n[4/4] Profiling real amenities for top locality "${topLocality.name}"...`);
+  const t3 = performance.now();
+  const profile = await amenityProvider.getProfile({ lat: topLocality.lat, lon: topLocality.lon });
+  const tProfile = Math.round(performance.now() - t3);
+
+  console.log(`  Profile fetched in ${tProfile}ms (total mapped objects: ${profile.totalMappedObjects}):`);
+  console.log(`    Healthcare:    ${profile.amenities.healthcare.value} [${profile.amenities.healthcare.source} · ${profile.amenities.healthcare.confidence}]`);
+  console.log(`    Education:     ${profile.amenities.education.value} [${profile.amenities.education.source} · ${profile.amenities.education.confidence}]`);
+  console.log(`    Grocery:       ${profile.amenities.grocery.value} [${profile.amenities.grocery.source} · ${profile.amenities.grocery.confidence}]`);
+  console.log(`    Food & Dining: ${profile.amenities.food.value} [${profile.amenities.food.source} · ${profile.amenities.food.confidence}]`);
+  console.log(`    Leisure:       ${profile.amenities.leisure.value} [${profile.amenities.leisure.source} · ${profile.amenities.leisure.confidence}]`);
+  console.log(`    Bus Stops:     ${profile.amenities.busStops.value} [${profile.amenities.busStops.source} · ${profile.amenities.busStops.confidence}]`);
+  console.log(`    Rail Stations: ${profile.amenities.railStations.value} [${profile.amenities.railStations.source} · ${profile.amenities.railStations.confidence}]`);
+  console.log(`    Police:        ${profile.safety.policeCount.value} [${profile.safety.policeCount.source}]`);
+  console.log(`    Lit Roads:     ${profile.safety.litRoadsCount.value} [${profile.safety.litRoadsCount.source}]`);
+
   return {
     city: resolution.name,
     candidates: localityResult.totalCandidates,
     selected: localityResult.localities.length,
-    timings: { photonMs: tPhoton, nominatimMs: tNom, overpassMs: tOverpass }
+    topLocalityAmenities: profile.totalMappedObjects,
+    timings: { photonMs: tPhoton, nominatimMs: tNom, overpassMs: tOverpass, amenityMs: tProfile }
   };
 }
 
@@ -99,6 +120,7 @@ async function main() {
   const nominatim = new NominatimGeocodingProvider(http);
   const photon = new PhotonGeocodingProvider(http);
   const overpass = new OverpassLocalityProvider(http);
+  const amenityProvider = new OverpassAmenityProvider(http);
 
   console.log(`Starting Locus Live Smoke Verification (zero hardcoded data)`);
   console.log(`Test targets: ${testCities.join(", ")}`);
@@ -106,7 +128,7 @@ async function main() {
   const results = [];
   for (const city of testCities) {
     try {
-      const res = await runSmokeForCity(city, nominatim, photon, overpass);
+      const res = await runSmokeForCity(city, nominatim, photon, overpass, amenityProvider);
       results.push({ status: "PASSED", ...res });
     } catch (err: unknown) {
       console.error(`  ERROR on ${city}:`, (err as Error).message);

@@ -156,3 +156,36 @@ All entries in this register were established via real network probes executed f
 - Centroids for polygon ways (`Sampangi Rama Nagara` `way/257906450`) accurately extracted via `center.lat` / `center.lon`.
 - Spatial deduplication eliminates redundant records within 500m while preserving relation/way geometry over nodes.
 
+---
+
+## 7. Phase 4 Amenity Profile Verification
+
+- **Verification Date:** 2026-10-04
+- **Verification Suites:** `tests/amenities.test.ts` & `npm run smoke` (`scripts/smoke.ts`)
+- **Query Strategy:** Single-request multi-category count query using named sets (`.set out count;`).
+
+### 7.1 Cross-Check Against Manual Overpass Query (Koramangala, Bengaluru)
+- **Coordinates:** `12.9352, 77.6245`
+- **Recorded Fixture:** `fixtures/recorded/overpass-amenity-counts.json` (captured via `scripts/probe/probe-overpass.ts`)
+- **Results:**
+  - `healthcare`: **79** (nodes 76, ways 2, relations 1)
+  - `education`: **47** (nodes 28, ways 16, relations 3)
+  - `grocery`: **23** (nodes 22, ways 1, relations 0)
+  - `food`: **168** (nodes 165, ways 3, relations 0)
+  - `leisure`: **58** (nodes 10, ways 48, relations 0)
+  - `busStops`: **9** (nodes 9, ways 0, relations 0)
+  - `railStations`: **0** (nodes 0, ways 0, relations 0) — Real zero preserved with `source: "osm"`.
+- **Polygon Undercount Proof:** Ways and relations contributed 19 elements in education (40.4% of total) and 48 elements in leisure (82.7% of total), proving `nwr` is indispensable compared to node-only queries.
+
+### 7.2 Live Smoke Test Amenity Profiles
+- **Fair Field Layout (Bengaluru):** Total mapped objects: **237**. Healthcare: 34, Education: 52, Grocery: 2, Food: 29, Leisure: 88, Bus: 11, Rail: 21, Police: 11, Lit roads: 83.
+- **Shaniwar Peth (Pune):** Total mapped objects: **279**. Healthcare: 118, Education: 65, Grocery: 0, Food: 25, Leisure: 24, Bus: 15, Rail: 32, Police: 11, Lit roads: 51.
+
+### 7.3 Radius Matching & Failure Isolation
+- **Radius Invariant:** Verified that radii in `buildAmenityProfileQuery` strictly match `QUERY_RADII` in `src/engine/config/index.ts` and `MethodInfo.radii`:
+  - Daily needs: 800m (grocery, food)
+  - Bus stops: 500m
+  - Institutions / Regional: 1500m (healthcare, education, leisure, railStations, safetyInfrastructure)
+- **Failure Semantics:** Confirmed by unit test that failed requests produce explicit `null` with `source: "unavailable"` and descriptive `note`, never falling back to fake defaults or zero.
+
+

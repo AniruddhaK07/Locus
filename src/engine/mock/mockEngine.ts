@@ -16,6 +16,7 @@ import type {
   SearchState
 } from "../domain/types";
 import { MOCK_AREAS, MOCK_PLACES, MOCK_SPARSE_AREAS, toAreaSummary } from "./mockData";
+import { QUERY_RADII } from "../config";
 
 export class MockEngine implements Engine {
   private scenario: MockScenario;
@@ -454,16 +455,7 @@ export class MockEngine implements Engine {
         low: 0.35,
         none: 0.0
       },
-      radii: {
-        grocery: 800,
-        food: 800,
-        busStop: 500,
-        healthcare: 1500,
-        education: 1500,
-        leisure: 1500,
-        railStation: 1500,
-        safetyInfrastructure: 1500
-      },
+      radii: QUERY_RADII,
       routingProfiles: {
         car: { available: true, provider: "routing.openstreetmap.de (routed-car)", isHeuristic: false },
         bike: { available: true, provider: "routing.openstreetmap.de (routed-bike)", isHeuristic: false },

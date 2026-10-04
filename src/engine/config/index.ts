@@ -70,10 +70,12 @@ export const QUERY_RADII = {
   grocery: 800,
   food: 800,
   busStop: 500,
+  busStops: 500,
   healthcare: 1500,
   education: 1500,
   leisure: 1500,
   railStation: 1500,
+  railStations: 1500,
   safetyInfrastructure: 1500
 };
 

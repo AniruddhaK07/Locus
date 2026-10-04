@@ -56,3 +56,22 @@ This document tracks every numeric metric and qualitative indicator produced by 
    - Unnamed elements discarded.
    - Spatial deduplication eliminates records within 500m sharing normalized name.
 
+---
+
+## 5. Amenity & Safety Indicator Provenance
+
+1. **Category Counting Methodology:**
+   - Acquired via single-request Overpass QL with named sets (`.set out count;`).
+   - Elements counted include `node`, `way`, and `relation` (`nwr`) to ensure schools, hospitals, and parks mapped as polygons are not undercounted.
+   - Radii: 800m for grocery and food; 500m for bus stops; 1500m for healthcare, education, leisure, rail stations, and safety infrastructure.
+2. **Confidence Rules:**
+   - Evaluated based on total mapped objects across all categories:
+     - $\ge 30$ objects: `confidence: "high"`.
+     - $10$ to $29$ objects: `confidence: "medium"` (noted as "Moderate OpenStreetMap coverage").
+     - $< 10$ objects: `confidence: "low"` (noted as "Sparse OpenStreetMap coverage in this locality").
+3. **Safety Infrastructure Disclaimer:**
+   - Sourced exclusively from OSM infrastructure tags: `amenity=police`, `way[lit=yes]`, `node[man_made=surveillance]`.
+   - Explicitly labelled: `"infrastructure indicator, not crime data"`.
+   - Confidence is lowered or `null` when local coverage is insufficient. Never derives safety from commercial amenities.
+
+
