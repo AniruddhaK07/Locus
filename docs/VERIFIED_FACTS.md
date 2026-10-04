@@ -374,4 +374,25 @@ Content-Type: text/html; charset=iso-8859-1
    - If the web app sends default headers, the browser attaches `Referer: https://locus-ashy-eight.vercel.app/`, which matches Apache's `*.vercel.app` blacklist and responds with 406.
    - Therefore, direct browser fetches from any `*.vercel.app` domain to the Roland Olbricht Overpass cluster cannot succeed without an intermediate relay, custom domain, or alternative mirror.
 
+### 12.4 Free Hosting Platform Referer Probes (2026-10-04)
+Tested gentle POST query and status probes against `https://lz4.overpass-api.de/api/interpreter` using standard Chrome User-Agent, matching Origin and Referer, spaced 3+ seconds apart:
+
+| Platform | Host / Referer Tested | Result | Details |
+|---|---|---|---|
+| Cloudflare Pages | `https://locus.pages.dev/` | **406 Not Acceptable** | Blacklisted by Apache rule (`*.pages.dev`) |
+| Netlify | `https://locus.netlify.app/` | **406 Not Acceptable** | Blacklisted by Apache rule (`*.netlify.app`) |
+| GitHub Pages | `https://aniruddhak07.github.io/Locus/` | **200 OK** | **ACCEPTED** (CORS `*`, no 406; passed to backend) |
+| Render | `https://locus.onrender.com/` | **200 OK** | **ACCEPTED** (CORS `*`, no 406; passed to backend) |
+| Firebase Hosting | `https://locus.web.app/` | **406 Not Acceptable** | Blacklisted by Apache rule (`*.web.app`) |
+
+### 12.5 Vercel Hobby Function Limits (Official Reference)
+- **Source URLs:**
+  - `https://vercel.com/docs/plans/hobby`
+  - `https://vercel.com/docs/functions/configuring-functions/duration`
+- **Default Execution Timeout:** 10s (if unconfigured)
+- **Maximum Configurable Duration (`maxDuration`):** 300s (5 minutes) for Node.js serverless functions on Hobby.
+- **Relay Implications:**
+  - While 300s provides ample headroom for individual 4-locality Overpass batches (3–8s), all Vercel serverless requests share datacenter egress IP pools, making Overpass rate-limiting (HTTP 429) the primary architectural constraint for a relay.
+
+
 
