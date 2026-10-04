@@ -2,7 +2,6 @@ import type {
   AreaDetail,
   AreaId,
   AreaSummary,
-  ComparisonMetricRow,
   ComparisonResult,
   Engine,
   EngineOptions,
@@ -17,18 +16,20 @@ import type {
 } from "../domain/types";
 import { MOCK_AREAS, MOCK_PLACES, MOCK_SPARSE_AREAS, toAreaSummary } from "./mockData";
 import { QUERY_RADII } from "../config";
+import { compareAreas } from "../features/compare";
+import { buildPortalLinks } from "../features/portals";
+import { SavedStore } from "../features/saved";
 
 export class MockEngine implements Engine {
   private scenario: MockScenario;
-  private savedAreas: Set<AreaId> = new Set();
-  private savedSubscribers: Set<() => void> = new Set();
+  private savedStore: SavedStore;
   private rentOverrides: Map<AreaId, number> = new Map();
   private currentAreaDetails: Map<AreaId, AreaDetail> = new Map();
 
   constructor(opts?: EngineOptions) {
     this.scenario = opts?.scenario || "normal";
+    this.savedStore = new SavedStore();
     this.loadInitialData();
-    this.loadSavedFromStorage();
   }
 
   public setScenario(s: MockScenario): void {
@@ -45,34 +46,6 @@ export class MockEngine implements Engine {
     }
   }
 
-  private loadSavedFromStorage(): void {
-    try {
-      if (typeof window !== "undefined" && window.localStorage) {
-        const raw = window.localStorage.getItem("locus_saved_areas");
-        if (raw) {
-          const ids: string[] = JSON.parse(raw);
-          for (const id of ids) {
-            this.savedAreas.add(id);
-          }
-        }
-      }
-    } catch {
-      // Storage unavailable or disabled
-    }
-  }
-
-  private persistSaved(): void {
-    try {
-      if (typeof window !== "undefined" && window.localStorage) {
-        window.localStorage.setItem("locus_saved_areas", JSON.stringify(Array.from(this.savedAreas)));
-      }
-    } catch {
-      // Storage unavailable or disabled
-    }
-    for (const sub of this.savedSubscribers) {
-      sub();
-    }
-  }
 
   async suggestPlaces(query: string, hint?: { city?: string }): Promise<PlaceSuggestion[]> {
     const q = query.trim().toLowerCase();
@@ -281,162 +254,18 @@ export class MockEngine implements Engine {
       const a = await this.getArea(id);
       if (a) details.push(a);
     }
-
-    const rows: ComparisonMetricRow[] = [
-      {
-        metric: "matchScore",
-        label: "Match Score",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            { value: `${d.matchScore}/100`, source: "heuristic", confidence: d.confidence }
-          ])
-        ),
-        winnerId: details.length ? [...details].sort((a, b) => b.matchScore - a.matchScore)[0]?.id : undefined
-      },
-      {
-        metric: "commute",
-        label: "Peak Commute",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            {
-              value: d.effectiveCommuteMin.value ? `${d.effectiveCommuteMin.value} min` : "Unavailable",
-              source: d.effectiveCommuteMin.source,
-              confidence: d.effectiveCommuteMin.confidence,
-              note: d.effectiveCommuteMin.note
-            }
-          ])
-        ),
-        winnerId: details.length
-          ? [...details].sort(
-              (a, b) => (a.effectiveCommuteMin.value ?? 999) - (b.effectiveCommuteMin.value ?? 999)
-            )[0]?.id
-          : undefined
-      },
-      {
-        metric: "rent",
-        label: "Rent Band (₹/mo)",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            {
-              value: d.userRentOverride
-                ? `₹${d.userRentOverride.toLocaleString("en-IN")} (user)`
-                : d.rentBand.value
-                ? `₹${d.rentBand.value.low.toLocaleString("en-IN")} - ₹${d.rentBand.value.high.toLocaleString("en-IN")}`
-                : "Unavailable",
-              source: d.userRentOverride ? "user" : d.rentBand.source,
-              confidence: d.userRentOverride ? "high" : d.rentBand.confidence,
-              note: d.rentBand.note
-            }
-          ])
-        )
-      },
-      {
-        metric: "amenities",
-        label: "Amenities Rating",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            {
-              value: d.amenitiesScore.value !== null ? `${d.amenitiesScore.value} / 10` : "Sparse",
-              source: d.amenitiesScore.source,
-              confidence: d.amenitiesScore.confidence,
-              note: d.amenitiesScore.note
-            }
-          ])
-        ),
-        winnerId: details.length
-          ? [...details].sort(
-              (a, b) => (b.amenitiesScore.value ?? 0) - (a.amenitiesScore.value ?? 0)
-            )[0]?.id
-          : undefined
-      },
-      {
-        metric: "safety",
-        label: "Safety Infrastructure",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            {
-              value: d.safetyIndicator.value !== null ? `${d.safetyIndicator.value} / 10` : "Sparse tags",
-              source: d.safetyIndicator.source,
-              confidence: d.safetyIndicator.confidence,
-              note: d.safetyIndicator.note
-            }
-          ])
-        ),
-        winnerId: details.length
-          ? [...details].sort(
-              (a, b) => (b.safetyIndicator.value ?? 0) - (a.safetyIndicator.value ?? 0)
-            )[0]?.id
-          : undefined
-      },
-      {
-        metric: "completeness",
-        label: "Data Completeness",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            {
-              value: `${Math.round(d.dataCompleteness * 100)}%`,
-              source: "heuristic",
-              confidence: "high"
-            }
-          ])
-        )
-      }
-    ];
-
-    return {
-      areas: details,
-      rows
-    };
+    return compareAreas(details);
   }
 
   saved = {
-    list: (): AreaId[] => Array.from(this.savedAreas),
-    has: (id: AreaId): boolean => this.savedAreas.has(id),
-    toggle: (id: AreaId): void => {
-      if (this.savedAreas.has(id)) {
-        this.savedAreas.delete(id);
-      } else {
-        this.savedAreas.add(id);
-      }
-      this.persistSaved();
-    },
-    subscribe: (cb: () => void): (() => void) => {
-      this.savedSubscribers.add(cb);
-      return () => this.savedSubscribers.delete(cb);
-    }
+    list: (): AreaId[] => this.savedStore.list(),
+    has: (id: AreaId): boolean => this.savedStore.has(id),
+    toggle: (id: AreaId): void => this.savedStore.toggle(id),
+    subscribe: (cb: () => void): (() => void) => this.savedStore.subscribe(cb)
   };
 
   portals(area: AreaSummary): PortalLink[] {
-    const areaName = encodeURIComponent(area.name);
-    return [
-      {
-        portal: "Housing.com",
-        url: `https://housing.com/rent/flats-for-rent-in-${areaName.toLowerCase()}-bangalore`,
-        isFallback: false
-      },
-      {
-        portal: "99acres",
-        url: `https://www.99acres.com/rent-property-in-${areaName.toLowerCase()}-bangalore-ffid`,
-        isFallback: false
-      },
-      {
-        portal: "MagicBricks",
-        url: `https://www.magicbricks.com/property-for-rent/residential-real-estate?cityName=Bengaluru&keyword=${areaName}`,
-        isFallback: false
-      },
-      {
-        portal: "Web Search",
-        url: `https://www.google.com/search?q=${encodeURIComponent(`flats for rent in ${area.name} Bengaluru`)}`,
-        isFallback: true,
-        note: "Universal fallback query link"
-      }
-    ];
+    return buildPortalLinks(area.name, "Bengaluru");
   }
 
   method(): MethodInfo {

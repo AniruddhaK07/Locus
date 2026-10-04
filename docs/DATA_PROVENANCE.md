@@ -142,3 +142,22 @@ This document tracks every numeric metric and qualitative indicator produced by 
 
 
 
+
+---
+
+## 9. Compare, Saved & Portal Links Provenance
+
+1. **Side-by-Side Comparison:**
+   - Sourced directly from cached or retrieved `AreaDetail` records without recalculation.
+   - Preserves all underlying `Measured<T>` sources, notes, and confidences.
+   - Winner logic: Evaluates `higherIsBetter` (match score, amenities, safety, completeness) and `lowerIsBetter` (commute, rent).
+   - Missing data handling: Measured value always beats `null`. If both are `null` or values are equal within $\epsilon$, `winnerId` is strictly `undefined` (no arbitrary tie-breaking).
+
+2. **Saved Shortlist:**
+   - Client-side persistence via `StorageAdapter` (`locus_saved_areas`) with cross-tab `StorageEvent` synchronization.
+   - Holds verified `AreaId` references; details hydrated on demand from IndexedDB cache.
+
+3. **Portal Link Generation:**
+   - Portals: MagicBricks, Housing.com, 99acres, and universal Google Search fallback.
+   - Generation strategy: Strict query parameters (`?keyword=...` or `?q=...`) rather than brittle URL slug guessing.
+   - Universal Fallback: A direct Google search link (`https://www.google.com/search?q=rent+flats+in+{area}+{city}`) is always generated as a resilient fallback that never 404s.

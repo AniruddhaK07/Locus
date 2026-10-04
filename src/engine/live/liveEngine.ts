@@ -14,7 +14,6 @@ import type {
   AreaDetail,
   AreaId,
   AreaSummary,
-  ComparisonMetricRow,
   ComparisonResult,
   Engine,
   EngineOptions,
@@ -49,6 +48,9 @@ import { SearchPipeline } from "../pipeline/searchPipeline";
 import { scoreArea } from "../scoring/matchScore";
 import { computeSafetyIndicator } from "../scoring/safety";
 import { computeHouseholdFit } from "../scoring/household";
+import { compareAreas } from "../features/compare";
+import { buildPortalLinks } from "../features/portals";
+import { SavedStore } from "../features/saved";
 
 export class LiveEngine implements Engine {
   private storage: StorageAdapter;
@@ -68,8 +70,7 @@ export class LiveEngine implements Engine {
   private areaDetailsCache: Map<AreaId, AreaDetail> = new Map();
   private lastSearchPreferences: Preferences | null = null;
 
-  private savedAreas: Set<AreaId> = new Set();
-  private savedSubscribers: Set<() => void> = new Set();
+  private savedStore: SavedStore;
 
   constructor(opts?: EngineOptions & { storage?: StorageAdapter }) {
     this.storage = opts?.storage || new IndexedDBStorageAdapter();
@@ -101,7 +102,7 @@ export class LiveEngine implements Engine {
       rent: this.rentProvider
     });
 
-    this.loadSavedFromStorage();
+    this.savedStore = new SavedStore();
   }
 
   public getScenario(): MockScenario {
@@ -111,38 +112,6 @@ export class LiveEngine implements Engine {
   public setScenario(_s: MockScenario): void {
     void _s;
     // No-op in live engine
-  }
-
-  private loadSavedFromStorage(): void {
-    try {
-      if (typeof window !== "undefined" && window.localStorage) {
-        const raw = window.localStorage.getItem("locus_saved_areas");
-        if (raw) {
-          const ids: string[] = JSON.parse(raw);
-          for (const id of ids) {
-            this.savedAreas.add(id);
-          }
-        }
-      }
-    } catch {
-      // Storage unavailable or blocked
-    }
-  }
-
-  private persistSaved(): void {
-    try {
-      if (typeof window !== "undefined" && window.localStorage) {
-        window.localStorage.setItem(
-          "locus_saved_areas",
-          JSON.stringify(Array.from(this.savedAreas))
-        );
-      }
-    } catch {
-      // Storage unavailable or blocked
-    }
-    for (const sub of this.savedSubscribers) {
-      sub();
-    }
   }
 
   async suggestPlaces(
@@ -349,164 +318,18 @@ export class LiveEngine implements Engine {
       const a = await this.getArea(id);
       if (a) details.push(a);
     }
-
-    const rows: ComparisonMetricRow[] = [
-      {
-        metric: "matchScore",
-        label: "Match Score",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            { value: `${d.matchScore}/100`, source: "heuristic", confidence: d.confidence }
-          ])
-        ),
-        winnerId: details.length
-          ? [...details].sort((a, b) => b.matchScore - a.matchScore)[0]?.id
-          : undefined
-      },
-      {
-        metric: "commute",
-        label: "Peak Commute",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            {
-              value: d.effectiveCommuteMin.value !== null ? `${d.effectiveCommuteMin.value} min` : "Unavailable",
-              source: d.effectiveCommuteMin.source,
-              confidence: d.effectiveCommuteMin.confidence,
-              note: d.effectiveCommuteMin.note
-            }
-          ])
-        ),
-        winnerId: details.length
-          ? [...details].sort(
-              (a, b) => (a.effectiveCommuteMin.value ?? 999) - (b.effectiveCommuteMin.value ?? 999)
-            )[0]?.id
-          : undefined
-      },
-      {
-        metric: "rent",
-        label: "Rent Band (₹/mo)",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            {
-              value: d.userRentOverride
-                ? `₹${d.userRentOverride.toLocaleString("en-IN")} (user)`
-                : d.rentBand.value !== null
-                ? `₹${d.rentBand.value.low.toLocaleString("en-IN")} - ₹${d.rentBand.value.high.toLocaleString("en-IN")}`
-                : "Unavailable",
-              source: d.userRentOverride ? "user" : d.rentBand.source,
-              confidence: d.userRentOverride ? "high" : d.rentBand.confidence,
-              note: d.rentBand.note
-            }
-          ])
-        )
-      },
-      {
-        metric: "amenities",
-        label: "Amenities Rating",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            {
-              value: d.amenitiesScore.value !== null ? `${d.amenitiesScore.value} / 10` : "Sparse",
-              source: d.amenitiesScore.source,
-              confidence: d.amenitiesScore.confidence,
-              note: d.amenitiesScore.note
-            }
-          ])
-        ),
-        winnerId: details.length
-          ? [...details].sort(
-              (a, b) => (b.amenitiesScore.value ?? 0) - (a.amenitiesScore.value ?? 0)
-            )[0]?.id
-          : undefined
-      },
-      {
-        metric: "safety",
-        label: "Safety Infrastructure",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            {
-              value: d.safetyIndicator.value !== null ? `${d.safetyIndicator.value} / 10` : "Sparse tags",
-              source: d.safetyIndicator.source,
-              confidence: d.safetyIndicator.confidence,
-              note: d.safetyIndicator.note
-            }
-          ])
-        ),
-        winnerId: details.length
-          ? [...details].sort(
-              (a, b) => (b.safetyIndicator.value ?? 0) - (a.safetyIndicator.value ?? 0)
-            )[0]?.id
-          : undefined
-      },
-      {
-        metric: "completeness",
-        label: "Data Completeness",
-        values: Object.fromEntries(
-          details.map((d) => [
-            d.id,
-            {
-              value: `${Math.round(d.dataCompleteness * 100)}%`,
-              source: "heuristic",
-              confidence: "high"
-            }
-          ])
-        )
-      }
-    ];
-
-    return {
-      areas: details,
-      rows
-    };
+    return compareAreas(details);
   }
 
   saved = {
-    list: (): AreaId[] => Array.from(this.savedAreas),
-    has: (id: AreaId): boolean => this.savedAreas.has(id),
-    toggle: (id: AreaId): void => {
-      if (this.savedAreas.has(id)) {
-        this.savedAreas.delete(id);
-      } else {
-        this.savedAreas.add(id);
-      }
-      this.persistSaved();
-    },
-    subscribe: (cb: () => void): (() => void) => {
-      this.savedSubscribers.add(cb);
-      return () => this.savedSubscribers.delete(cb);
-    }
+    list: (): AreaId[] => this.savedStore.list(),
+    has: (id: AreaId): boolean => this.savedStore.has(id),
+    toggle: (id: AreaId): void => this.savedStore.toggle(id),
+    subscribe: (cb: () => void): (() => void) => this.savedStore.subscribe(cb)
   };
 
   portals(area: AreaSummary): PortalLink[] {
-    const areaName = encodeURIComponent(area.name);
-    return [
-      {
-        portal: "Housing.com",
-        url: `https://housing.com/rent/flats-for-rent-in-${areaName.toLowerCase()}`,
-        isFallback: false
-      },
-      {
-        portal: "99acres",
-        url: `https://www.99acres.com/rent-property-in-${areaName.toLowerCase()}-ffid`,
-        isFallback: false
-      },
-      {
-        portal: "MagicBricks",
-        url: `https://www.magicbricks.com/property-for-rent/residential-real-estate?keyword=${areaName}`,
-        isFallback: false
-      },
-      {
-        portal: "Web Search",
-        url: `https://www.google.com/search?q=${encodeURIComponent(`flats for rent in ${area.name}`)}`,
-        isFallback: true,
-        note: "Universal fallback query link"
-      }
-    ];
+    return buildPortalLinks(area.name, this.lastSearchPreferences?.city);
   }
 
   method(): MethodInfo {

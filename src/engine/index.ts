@@ -19,6 +19,9 @@ export * from "./scoring/explanations";
 export * from "./providers/rent";
 export * from "./pipeline/searchPipeline";
 export * from "./live/liveEngine";
+export * from "./features/compare";
+export * from "./features/portals";
+export * from "./features/saved";
 
 export const ENGINE_NAME = "Locus Engine";
 export const ENGINE_VERSION = "0.1.0";

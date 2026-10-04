@@ -292,3 +292,28 @@ The search pipeline executes progressively through 6 stages:
    - Dynamic Rent Override: `setRentOverride(id, rent)` applies user-entered rent, recalculates scores, and persists changes.
    - State Persistence & Sharing: `prefsToQuery` and `queryToPrefs` provide lossless round-trip serialization of preferences to URL query parameters.
    - Single-flag Mode Switch: Switched via `VITE_ENGINE_MODE=live` with zero changes to presentation UI components.
+
+---
+
+## 11. Feature Architecture (`src/engine/features/`)
+
+1. **Side-by-Side Compare (`compare.ts`):**
+   - Function: `compareAreas(areas: AreaDetail[]): ComparisonResult`
+   - Dynamically formats side-by-side metric rows across 6 core criteria: Overall Match, Peak Commute, Rent Band, Amenity Richness, Safety Indicator, and Data Completeness.
+   - Per-row winner logic:
+     - `higherIsBetter`: Match score, Amenities, Safety, Data Completeness.
+     - `lowerIsBetter`: Commute duration, Rent estimate.
+     - Tie Handling: If two or more areas are equal within tolerance, `winnerId` is strictly `undefined` (no arbitrary tie-breaking).
+     - Missing Values: A measured value always wins against a missing (`null`) value.
+
+2. **Saved Shortlist Store (`saved.ts`):**
+   - Class: `SavedStore` implementing persistent storage with in-memory fallback.
+   - List, toggle, and has operations.
+   - Cross-tab synchronisation: Subscribes to browser `storage` events on key `locus_saved_areas` to update reactively across tabs.
+   - Reactive subscriptions: `subscribe(cb)` notifies UI subscribers on every mutation.
+
+3. **Portal Link Builders (`portals.ts`):**
+   - Function: `buildPortalLinks(area: AreaSummary, city?: string): PortalLink[]`
+   - Supports verified rental platforms: MagicBricks, Housing.com, 99acres.
+   - Eliminates brittle slug guessing: uses search query parameters (`?keyword=...` or `?q=...`).
+   - Universal Fallback: Always appends a verified Google Search fallback query (`https://www.google.com/search?q=rent+flats+in+{area}+{city}`) ensuring the user always has a guaranteed working search link.

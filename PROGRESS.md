@@ -2,25 +2,23 @@
 
 ## Resume here
 
-- **Current Phase:** Phase 7 complete — starting Phase 8 (Compare, saved, portal links).
-- **Done in Phase 7:**
-  - Implemented `SearchPipeline` (`src/engine/pipeline/searchPipeline.ts`) orchestrating all 6 progressive stages (`resolving-city` $\rightarrow$ `discovering-localities` $\rightarrow$ `routing` $\rightarrow$ `profiling-amenities` $\rightarrow$ `scoring` $\rightarrow$ `done`).
-  - Implemented progressive state updates emitting progress and locality batches to subscribers without UI flicker.
-  - Implemented per-locality failure isolation: amenity or routing failure for a single candidate records in `localityErrors` and produces `null` metrics with lowered completeness, allowing the pipeline to finish cleanly.
-  - Implemented `LiveEngine` (`src/engine/live/liveEngine.ts`) backing the full `Engine` interface with real network providers and rate-limiting queues.
-  - Implemented persistent storage and re-hydration via `StorageAdapter` / IndexedDB (`locus_area_{id}`) for instant direct-link loading.
-  - Implemented `setRentOverride` with dynamic score re-computation and cache re-persistence.
-  - Implemented lossless round-trip preference serialization via `prefsToQuery` and `queryToPrefs`.
-  - Added unit test suite `tests/pipeline.test.ts` (11 tests) asserting progressive stages, failure isolation, abort handling, URL serialization, and persistence.
-  - Ran live smoke test on Pune executing the full pipeline against real Overpass, Nominatim, and OSRM endpoints (12 localities ranked in 131s, Narayan Peth #1, Sadashiv Peth #2, Deccan Gymkhana #3).
-  - Verified `npm run check` passes 100% (101 unit tests across 9 test suites).
-- **In progress:** Phase 8 — Compare, saved, portal links.
-- **Phase 8 Plan (5–10 lines):**
-  1. Audit `compare()` implementation for multi-area side-by-side metric rows, per-metric winner determination, and formatted values.
-  2. Implement robust `saved` store with persistent storage and cross-tab synchronisation (`StorageEvent`).
-  3. Validate and refine portal link builders (`portals(area)`) with city-applicability rules and universal search engine fallback.
-  4. Write comprehensive unit tests in `tests/features.test.ts` asserting compare winner logic, saved toggle subscriptions, and portal URL generation.
-  5. Run `npm run check`, commit `phase(7): Pipeline orchestration, live wiring, persistence`, tag `phase-7`, and push.
+- **Current Phase:** Phase 8 complete — starting Phase 9 (Hardening, demo resilience, deploy, final docs).
+- **Done in Phase 8:**
+  - Implemented `compareAreas` (`src/engine/features/compare.ts`) formatting side-by-side metric comparisons with per-row winner detection (`higherIsBetter` vs `lowerIsBetter`), tie handling, and missing-value preference.
+  - Implemented `SavedStore` (`src/engine/features/saved.ts`) with persistent storage fallback, reactive subscriptions, deduplication, and cross-tab `StorageEvent` synchronization.
+  - Implemented `buildPortalLinks` (`src/engine/features/portals.ts`) generating search queries for MagicBricks, Housing.com, 99acres, plus guaranteed universal Google Search fallback link (zero brittle slug guessing).
+  - Wired into `LiveEngine`, `MockEngine`, and exported cleanly via `@engine`.
+  - Added unit test suite `tests/features.test.ts` (6 tests) verifying compare winners, ties, null metrics, saved subscriptions, and portal link construction.
+  - All 107 tests across 10 test suites pass cleanly.
+- **In progress:** Phase 9 — Hardening, demo resilience, deploy, final docs.
+- **Phase 9 Plan (5–10 lines):**
+  1. Conduct request volume and error budget review across external services.
+  2. Create demo-resilience snapshots for 3 demo cities (Delhi, Bengaluru, Pune) in `fixtures/snapshots/` with recorded data and `fetchedAt`.
+  3. Implement snapshot provider / mode switch (`VITE_ENGINE_MODE=snapshot`) so offline/stage presentations run with zero external network failure risk.
+  4. Write `docs/DEMO_SCRIPT.md`: a 3-minute honest walkthrough stating what is directly measured vs estimated.
+  5. Audit README and all docs against final code for zero drift or stale claims.
+  6. Verify full production build (`npm run build`) and final check (`npm run check`).
+  7. Commit `phase(9): Hardening, demo resilience, deploy, final docs`, tag `phase-9`, and push.
 - **How to check:**
   ```bash
   npm run check
@@ -32,6 +30,7 @@
   - When city resolves to a node (like Pune), either `is_in` enclosing boundary or exact geocoder bounding box fallback is used.
   - Transit mode (metro/bus schedule routing) is unverified and disabled in v1.
   - Rent data from listing portals is unavailable via unauthenticated API; starter tier-band heuristic + user override is used.
+
 
 ---
 
@@ -62,7 +61,7 @@
 | **5** | Commute engine | 3 h | **DONE** | 2026-10-04T12:55:00+05:30 |
 | **6** | Scoring engine and explanations | 2.5 h | **DONE** | 2026-10-04T13:10:00+05:30 |
 | **7** | Pipeline orchestration, live wiring, persistence | 3 h | **DONE** | 2026-10-04T13:28:00+05:30 |
-| **8** | Compare, saved, portal links | 1.5 h | Pending | — |
+| **8** | Compare, saved, portal links | 1.5 h | **DONE** | 2026-10-04T13:40:00+05:30 |
 | **9** | Hardening, demo resilience, deploy, final docs | 3 h | Pending | — |
 
 ---
@@ -154,3 +153,15 @@
    - Cancellation and restarts: Verified `searchHandle.cancel()` and starting a new search cleanly aborts previous in-flight requests and leaves no stale updates.
    - Per-locality failure isolation: Simulated locality timeout in `tests/pipeline.test.ts` verified that failed localities receive `null` metrics with lowered completeness while the other localities complete normally.
    - Live smoke test on Pune: Overpass discovered 138 candidates, OSRM routed matrix in 1.7s, Overpass profiled 12 candidates through 750ms rate limiter in 131s, scoring and ranking top 3 (#1 Narayan Peth 91%, #2 Sadashiv Peth 89%, #3 Deccan Gymkhana 89%) with 100% completeness.
+
+---
+
+## Phase 8 Verification & Acceptance Results
+
+1. **Commands Executed:**
+   - `npm run check` $\rightarrow$ Passed (0 TS errors, 0 ESLint errors/warnings, 107 unit tests passed across 10 test suites in 2.05s).
+2. **Acceptance Criteria Verification:**
+   - Multi-area side-by-side comparison: `compareAreas` formats comparative metrics for up to 3 candidate areas across match score, commute, rent, amenities, safety, and completeness.
+   - Winner logic: Evaluates `higherIsBetter` vs `lowerIsBetter`; tie conditions produce `winnerId = undefined` (no arbitrary winner chosen); real measured values always win against missing `null` values.
+   - Saved shortlist store: `SavedStore` manages IDs with persistent storage, listeners, and cross-tab `StorageEvent` synchronization.
+   - Portal links: `buildPortalLinks` constructs queries for MagicBricks, Housing.com, 99acres, and always appends a resilient Google search query fallback (`https://www.google.com/search?q=rent+flats+in+{area}+{city}`) with zero fragile slug guessing.
