@@ -48,10 +48,12 @@ export interface Engine {
   suggestPlaces(query: string, hint?: { city?: string }, signal?: AbortSignal): Promise<PlaceSuggestion[]>;
   startSearch(prefs: Preferences): SearchHandle;
   getArea(id: AreaId): Promise<AreaDetail | null>;
-  compare(ids: AreaId[]): ComparisonResult;
+  setRentOverride(id: AreaId, rent: number | null): Promise<AreaDetail | null>;
+  compare(ids: AreaId[]): Promise<ComparisonResult>;
   saved: {
     list(): AreaId[];
     toggle(id: AreaId): void;
+    has(id: AreaId): boolean;
     subscribe(cb: () => void): () => void;
   };
   portals(area: AreaSummary): PortalLink[];
@@ -59,13 +61,20 @@ export interface Engine {
   prefsToQuery(p: Preferences): string;
   queryToPrefs(q: string): Preferences | null;
 }
+
+export interface SearchHandle {
+  id: string;
+  getState(): SearchState;
+  subscribe(cb: (s: SearchState) => void): () => void;
+  cancel(): void;
+}
 ```
 
 ---
 
 ## 3. Algorithm Specifications & Tunable Constants
 
-All constants will reside in `src/engine/config/` with clear provenance tags: `VERIFIED`, `SOURCED(...)`, or `HEURISTIC`.
+All constants reside in `src/engine/config/` (or engine mock/defaults) with clear provenance tags: `VERIFIED`, `SOURCED(...)`, or `HEURISTIC`.
 
 ### 3.1 Scoring Weights (`HEURISTIC`)
 - Budget: 28
@@ -117,7 +126,7 @@ The search pipeline executes progressively through 6 stages:
 
 ## 5. External Services & Direct Browser Communication
 
-- **Photon (`https://photon.komoot.io`):** Typeahead place suggestion. Direct browser request with CORS.
-- **OSM Nominatim (`https://nominatim.openstreetmap.org`):** On-submit city boundary resolution only. Identifies via `GEO_CONTACT`.
-- **Overpass API:** Candidate mirrors rotated with backoff, queue spacing ≥ 700 ms, direct browser queries to avoid shared serverless IP starvation.
-- **OSRM:** Driving route and table endpoint.
+- **Photon (`https://photon.komoot.io`):** Typeahead place suggestion. Direct browser request with CORS (`access-control-allow-origin: *`).
+- **OSM Nominatim (`https://nominatim.openstreetmap.org`):** On-submit city boundary resolution only. Identified via optional email query param or Referer origin. Autocomplete strictly forbidden on Nominatim.
+- **Overpass API (`https://overpass-api.de/api`):** Roland Olbricht cluster. Concurrency = 1 with ≥ 700 ms spacing to respect IP slot limits (2–4 slots). Direct browser queries avoid shared server IP starvation.
+- **OSRM Multi-Modal (`https://routing.openstreetmap.de`):** Dedicated endpoints (`routed-car`, `routed-bike`, `routed-foot`) supporting route and `/table` matrix queries with `CORS: *`. Demo host `router.project-osrm.org` used only for car fallback.
