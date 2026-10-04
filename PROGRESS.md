@@ -2,27 +2,26 @@
 
 ## Resume here
 
-- **Current Phase:** Phase 4 complete — starting Phase 5 (Commute engine).
-- **Done in Phase 4:**
-  - Implemented `OverpassAmenityProvider` (`src/engine/providers/amenities/overpass.ts`) using a unified single-request Overpass QL query with named sets (`.set out count;`).
-  - Added real counts for 7 amenity categories (healthcare, education, grocery, food, leisure, busStops, railStations) and 3 safety categories (police, litRoads, surveillance).
-  - Enforced strict null-vs-zero semantics: network/query failures yield `value: null, source: "unavailable", note: "<reason>"`; empty counts yield `value: 0, source: "osm"`.
-  - Implemented relative normalization (`log1p` + min-max across candidate set) with reference saturation ceilings for $< 5$ candidates in `src/engine/scoring/amenityScores.ts`.
-  - Implemented density coverage indicator downweighting confidence when local OSM mapping is sparse.
-  - Created unit test suite `tests/amenities.test.ts` (6 tests) verifying parsing of recorded fixture `overpass-amenity-counts.json`, failure isolation, and exact radius invariant matching `QUERY_RADII` and `MethodInfo`.
-  - Extended live smoke script `scripts/smoke.ts` to profile amenities live for Bengaluru (Fair Field Layout: 237 objects) and Pune (Shaniwar Peth: 279 objects).
-  - Verified `npm run check` passes 100% (48 unit tests across 6 test suites).
-- **In progress:** Phase 5 — Commute engine.
-- **Phase 5 Plan (5–10 lines):**
-  1. Implement `OsrmRoutingProvider` in `src/engine/providers/routing/osrm.ts` querying multi-modal endpoints on `routing.openstreetmap.de` (`routed-car`, `routed-bike`, `routed-foot`).
-  2. Implement OSRM `/table` batching for many-to-one travel times (localities to primary workplace and secondary destinations).
-  3. Implement peak commute heuristic: $T_{peak} = T_{freeflow} \times (1 + \alpha_{city} \times (1 - \exp(-d/8)))$.
-  4. Implement city tier lookup based on geocoder normalized city/district fields mapping to $\alpha_{city}$ tiers (`CITY_TIER_ALPHAS`).
-  5. Report free-flow (`source: "routing"`) and peak range (`source: "heuristic"`, `confidence: "low"`).
-  6. Support multiple destinations with weighted blending: $0.7 \times \text{primary} + 0.3 \times \text{mean}(\text{extras})$.
-  7. Create `docs/CALIBRATION.md` for ground-truth commute calibration observations.
-  8. Write unit tests in `tests/commute.test.ts` and verify multi-modal live routing in smoke script.
-  9. Run `npm run check`, commit `phase(4): Amenity profile`, tag `phase-4`, and push.
+- **Current Phase:** Phase 5 complete — starting Phase 6 (Scoring engine and explanations).
+- **Done in Phase 5:**
+  - Implemented `OsrmRoutingProvider` (`src/engine/providers/routing/osrm.ts`) querying multi-modal endpoints on `routing.openstreetmap.de` (`routed-car`, `routed-bike`, `routed-foot`) with `/table` matrix batching and fallback to demo host.
+  - Implemented honest peak congestion heuristic: $T_{peak} = T_{freeflow} \times (1 + \alpha_{city} \times (1 - \exp(-d / 8)))$ reporting calculated peak minutes and lower/upper ranges.
+  - Implemented city tier lookup (`resolveCityAlpha`) resolving $\alpha_{city}$ strictly from geocoder administrative tags (Mega-Metro 2.3, Dense Metro 1.9, Large Metro 1.6, Standard 1.2).
+  - Implemented multi-destination blending (70% primary destination + 30% extras average) and commute exponential decay utility.
+  - Created `docs/CALIBRATION.md` detailing the congestion heuristic and empirical calibration table.
+  - Created unit test suite `tests/commute.test.ts` (15 tests) verifying tier resolution, corridor calibration, 70/30 weighting, failure isolation, and OSRM table URL building & parsing.
+  - Extended live smoke script `scripts/smoke.ts` to execute live multi-modal routing for Bengaluru (5m free-flow $\rightarrow$ 8m peak) and Pune (1m free-flow $\rightarrow$ 1m peak) and verified unverified transit mode produces explicit `null`.
+  - Verified `npm run check` passes 100% (63 unit tests across 7 test suites).
+- **In progress:** Phase 6 — Scoring engine and explanations.
+- **Phase 6 Plan (5–10 lines):**
+  1. Implement budget utility function with strict property tests (continuity at $R_{\min}, R_t, R_{\max}$, monotonicity, $U \in [0, 1]$).
+  2. Implement `RentProvider` with `CityTierBand` heuristic estimate scaled by locality rank + `UserOverride` support.
+  3. Implement `SafetyProvider` computing infrastructure indicators (police, lit ways, surveillance) with coverage check and explicit disclaimers.
+  4. Implement household fit scoring (family, couple, student, balanced) derived deterministically from category counts.
+  5. Implement multi-criteria weighting, confidence factoring, renormalization over non-null criteria, and `dataCompleteness` calculation.
+  6. Implement template-based plain English explanations highlighting strengths, caveats, and low-confidence inputs without LLM calls.
+  7. Write unit tests in `tests/scoring.test.ts` asserting all budget property tests, sparse data handling, and absence of `||` defaults.
+  8. Run `npm run check`, commit `phase(5): Commute engine`, tag `phase-5`, and push.
 - **How to check:**
   ```bash
   npm run check
@@ -45,6 +44,7 @@
 - **Phase 2 Completed:** `2026-10-04T12:05:00+05:30`
 - **Phase 3 Completed:** `2026-10-04T12:32:00+05:30`
 - **Phase 4 Completed:** `2026-10-04T12:46:00+05:30`
+- **Phase 5 Completed:** `2026-10-04T12:55:00+05:30`
 - **Repository:** `https://github.com/AniruddhaK07/Locus.git`
 
 ---
@@ -58,7 +58,7 @@
 | **2** | Infrastructure layer | 2 h | **DONE** | 2026-10-04T12:05:00+05:30 |
 | **3** | Geocoding and locality discovery | 3 h | **DONE** | 2026-10-04T12:32:00+05:30 |
 | **4** | Amenity profile | 2 h | **DONE** | 2026-10-04T12:46:00+05:30 |
-| **5** | Commute engine | 3 h | Pending | — |
+| **5** | Commute engine | 3 h | **DONE** | 2026-10-04T12:55:00+05:30 |
 | **6** | Scoring engine and explanations | 2.5 h | Pending | — |
 | **7** | Pipeline orchestration, live wiring, persistence | 3 h | Pending | — |
 | **8** | Compare, saved, portal links | 1.5 h | Pending | — |
@@ -107,5 +107,20 @@
    - Failure isolation: Query/network failure produces `value: null, source: "unavailable"` and descriptive note; zero fake defaults.
    - Radius invariant: Verified `buildAmenityProfileQuery` radii strictly equal `QUERY_RADII` and `MethodInfo.radii` (800m daily needs, 500m bus stops, 1500m institutions and safety).
    - Relative normalization: `log1p` + min-max normalization tested across candidates, with reference saturation ceiling fallback for $< 5$ candidates.
+
+---
+
+## Phase 5 Verification & Acceptance Results
+
+1. **Commands Executed:**
+   - `npm run check` $\rightarrow$ Passed (0 TS errors, 0 ESLint errors/warnings, 63 unit tests passed across 7 test suites).
+   - `npm run smoke` $\rightarrow$ Verified multi-modal OSRM routing and peak ranges for top 5 localities in Bengaluru and Pune.
+2. **Acceptance Criteria Verification:**
+   - Unit tests for heuristic: Verified $T_{peak} = T_{freeflow} \times (1 + \alpha \times (1 - \exp(-d/8)))$ in `tests/commute.test.ts`.
+   - Tier lookup: Verified `resolveCityAlpha` correctly derives $\alpha$ strictly from administrative tags (Mega-Metro 2.3, Dense Metro 1.9, Large Metro 1.6, Standard 1.2).
+   - Live smoke: Printed free-flow and peak ranges for top 5 localities in Bengaluru and Pune.
+   - Disabled/unverified modes: Confirmed `transit` mode is visibly reported as `DISABLED/UNVERIFIED (null)` with transparent explanation.
+   - Documentation: Provided `docs/CALIBRATION.md` with empirical observation calibration table.
+
 
 

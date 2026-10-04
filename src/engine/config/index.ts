@@ -93,3 +93,9 @@ export const CITY_TIER_ALPHAS: Record<string, number> = {
   "ahmedabad": 1.6,
   "default": 1.2
 };
+
+// Commute Calculation & Weighting Constants (HEURISTIC & ASSUMPTION)
+export const PRIMARY_COMMUTE_WEIGHT = 0.7; // ASSUMPTION: 70% primary destination weight
+export const EXTRAS_COMMUTE_WEIGHT = 0.3;  // ASSUMPTION: 30% split across extra destinations
+export const COMMUTE_EXP_K = 1.0;          // HEURISTIC: decay factor in exp(-k * t / tMax)
+

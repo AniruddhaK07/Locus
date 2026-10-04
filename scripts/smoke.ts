@@ -17,6 +17,7 @@ import { NominatimGeocodingProvider } from "../src/engine/providers/geocoding/no
 import { PhotonGeocodingProvider } from "../src/engine/providers/geocoding/photon";
 import { OverpassLocalityProvider } from "../src/engine/providers/localities/overpass";
 import { OverpassAmenityProvider } from "../src/engine/providers/amenities/overpass";
+import { OsrmRoutingProvider } from "../src/engine/providers/routing/osrm";
 
 // Parse CLI flags
 function getArg(flag: string): string | undefined {
@@ -32,14 +33,15 @@ async function runSmokeForCity(
   nominatim: NominatimGeocodingProvider,
   photon: PhotonGeocodingProvider,
   overpass: OverpassLocalityProvider,
-  amenityProvider: OverpassAmenityProvider
+  amenityProvider: OverpassAmenityProvider,
+  routingProvider: OsrmRoutingProvider
 ) {
   console.log(`\n======================================================`);
   console.log(`  Live Smoke Test: ${cityInput}`);
   console.log(`======================================================`);
 
   // Step 1: Typeahead Suggestions via Photon
-  console.log(`\n[1/4] Testing Photon typeahead suggestions for "${cityInput}"...`);
+  console.log(`\n[1/5] Testing Photon typeahead suggestions for "${cityInput}"...`);
   const t0 = performance.now();
   const suggestions = await photon.suggest(cityInput);
   const tPhoton = Math.round(performance.now() - t0);
@@ -50,7 +52,7 @@ async function runSmokeForCity(
   console.log(`  Top suggestion: "${suggestions[0].name}" (${suggestions[0].id}) at [${suggestions[0].lat.toFixed(4)}, ${suggestions[0].lon.toFixed(4)}]`);
 
   // Step 2: City Resolution via Nominatim
-  console.log(`\n[2/4] Resolving city boundary via Nominatim...`);
+  console.log(`\n[2/5] Resolving city boundary via Nominatim...`);
   const t1 = performance.now();
   const resolution = await nominatim.resolveCity(cityInput);
   const tNom = Math.round(performance.now() - t1);
@@ -62,7 +64,7 @@ async function runSmokeForCity(
   console.log(`    Source Note: ${resolution.sourceNote}`);
 
   // Step 3: Locality Discovery via Overpass
-  console.log(`\n[3/4] Discovering candidate localities via Overpass...`);
+  console.log(`\n[3/5] Discovering candidate localities via Overpass...`);
   const t2 = performance.now();
   const anchor = { lat: resolution.lat, lon: resolution.lon };
   const localityResult = await overpass.discoverLocalities(resolution, anchor, { limit: 12 });
@@ -84,7 +86,7 @@ async function runSmokeForCity(
 
   // Step 4: Amenity Profiling for Top Locality
   const topLocality = localityResult.localities[0];
-  console.log(`\n[4/4] Profiling real amenities for top locality "${topLocality.name}"...`);
+  console.log(`\n[4/5] Profiling real amenities for top locality "${topLocality.name}"...`);
   const t3 = performance.now();
   const profile = await amenityProvider.getProfile({ lat: topLocality.lat, lon: topLocality.lon });
   const tProfile = Math.round(performance.now() - t3);
@@ -100,12 +102,50 @@ async function runSmokeForCity(
   console.log(`    Police:        ${profile.safety.policeCount.value} [${profile.safety.policeCount.source}]`);
   console.log(`    Lit Roads:     ${profile.safety.litRoadsCount.value} [${profile.safety.litRoadsCount.source}]`);
 
+  // Step 5: Real Commute Calculations for Top 5 Localities (OSRM & Peak Heuristic)
+  const top5 = localityResult.localities.slice(0, 5);
+  console.log(`\n[5/5] Calculating real commutes for top 5 localities to city anchor [${anchor.lat.toFixed(4)}, ${anchor.lon.toFixed(4)}]...`);
+  const t4 = performance.now();
+  const destinations = [{ id: "workplace", label: "Workplace", name: `${resolution.name} Center`, lat: anchor.lat, lon: anchor.lon }];
+  const commuteResults = await routingProvider.calculateCommutes({
+    origins: top5.map((l) => ({ lat: l.lat, lon: l.lon })),
+    destinations,
+    mode: "car",
+    cityName: resolution.name,
+    maxCommuteMin: 45
+  });
+  const tCommute = Math.round(performance.now() - t4);
+
+  console.log(`  Multi-modal OSRM routing completed in ${tCommute}ms:\n`);
+  commuteResults.forEach((res, i) => {
+    const loc = top5[i];
+    const c = res.commutes[0];
+    const freeFlow = c.freeFlowMin.value !== null ? `${c.freeFlowMin.value}m` : "N/A";
+    const peak = c.peakEstimateMin.value !== null ? `${c.peakEstimateMin.value}m` : "N/A";
+    const dist = c.distanceKm.value !== null ? `${c.distanceKm.value} km` : "N/A";
+    const note = c.peakEstimateMin.note || "";
+    const exceeds = c.exceedsMax ? " [EXCEEDS MAX 45m]" : "";
+    console.log(
+      `    ${(i + 1).toString().padStart(2, " ")}. ${loc.name.padEnd(25, " ")} | Free-flow: ${freeFlow.padStart(4, " ")} [${c.freeFlowMin.source}] | Distance: ${dist.padStart(7, " ")} | Peak Range: ${peak.padStart(4, " ")} (${note})${exceeds}`
+    );
+  });
+
+  // Verify disabled/unverified transit mode handling
+  const transitCheck = await routingProvider.calculateCommutes({
+    origins: [{ lat: topLocality.lat, lon: topLocality.lon }],
+    destinations,
+    mode: "transit"
+  });
+  console.log(`\n  Unverified Mode Check (transit):`);
+  console.log(`    Status: ${transitCheck[0].commutes[0].freeFlowMin.value === null ? "DISABLED/UNVERIFIED (null)" : "UNEXPECTED"}`);
+  console.log(`    Note:   ${transitCheck[0].commutes[0].freeFlowMin.note}`);
+
   return {
     city: resolution.name,
     candidates: localityResult.totalCandidates,
     selected: localityResult.localities.length,
     topLocalityAmenities: profile.totalMappedObjects,
-    timings: { photonMs: tPhoton, nominatimMs: tNom, overpassMs: tOverpass, amenityMs: tProfile }
+    timings: { photonMs: tPhoton, nominatimMs: tNom, overpassMs: tOverpass, amenityMs: tProfile, commuteMs: tCommute }
   };
 }
 
@@ -121,6 +161,7 @@ async function main() {
   const photon = new PhotonGeocodingProvider(http);
   const overpass = new OverpassLocalityProvider(http);
   const amenityProvider = new OverpassAmenityProvider(http);
+  const routingProvider = new OsrmRoutingProvider(http);
 
   console.log(`Starting Locus Live Smoke Verification (zero hardcoded data)`);
   console.log(`Test targets: ${testCities.join(", ")}`);
@@ -128,7 +169,7 @@ async function main() {
   const results = [];
   for (const city of testCities) {
     try {
-      const res = await runSmokeForCity(city, nominatim, photon, overpass, amenityProvider);
+      const res = await runSmokeForCity(city, nominatim, photon, overpass, amenityProvider, routingProvider);
       results.push({ status: "PASSED", ...res });
     } catch (err: unknown) {
       console.error(`  ERROR on ${city}:`, (err as Error).message);

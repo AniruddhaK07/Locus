@@ -205,4 +205,26 @@ The search pipeline executes progressively through 6 stages:
    - When $M < 5$, falls back to documented heuristic reference saturation ceilings (`ABSOLUTE_REFERENCE_CEILINGS`).
    - Computes blended overall Amenities Score (0–10) and Transit Access Score (0–10) renormalized across non-null categories.
 
+---
+
+## 8. Commute Engine Architecture (`src/engine/providers/routing/` & `src/engine/scoring/commute.ts`)
+
+1. **Multi-Modal OSRM Routing (`OsrmRoutingProvider`):**
+   - Directs queries to verified endpoints on `routing.openstreetmap.de` (`routed-car`, `routed-bike`, `routed-foot`).
+   - Uses batch `/table` matrix requests: routes all $N$ candidate localities to $D$ destinations in a single HTTP call.
+   - Falls back gracefully to `https://router.project-osrm.org` for car mode if the primary host is unreachable.
+   - Transit mode is explicitly marked unverified/disabled in v1, producing `null` with a transparent note.
+
+2. **Honest Peak Congestion Heuristic:**
+   - Applies corridor-calibrated congestion formula:
+     $$T_{\text{peak}} = T_{\text{freeflow}} \times \left(1 + \alpha_{\text{city}} \times \left(1 - \exp(-d / 8)\right)\right)$$
+   - Reports both free-flow duration (`[routing · medium]`) and peak estimated range (`[heuristic · low]`).
+   - Tier lookup resolves $\alpha_{\text{city}}$ from geocoder administrative tags (Mega-Metro 2.3, Dense Metro 1.9, Large Metro 1.6, Standard 1.2), never raw user text.
+
+3. **Multi-Destination Blending:**
+   - Blends primary destination (70% weight) with secondary destinations (30% weight averaged):
+     $$\text{Effective Commute} = 0.7 \times T_{\text{primary}} + 0.3 \times \frac{1}{M}\sum_{k=1}^M T_{\text{extra}, k}$$
+   - Commute utility score decays smoothly via $S = 100 \times \exp(-k \times t / t_{\max})$ ($k = 1.0$).
+
+
 

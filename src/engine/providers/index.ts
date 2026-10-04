@@ -12,3 +12,7 @@ export * from "./localities/overpass";
 export * from "./amenities/types";
 export * from "./amenities/overpass";
 
+export * from "./routing/types";
+export * from "./routing/osrm";
+
+

@@ -74,4 +74,24 @@ This document tracks every numeric metric and qualitative indicator produced by 
    - Explicitly labelled: `"infrastructure indicator, not crime data"`.
    - Confidence is lowered or `null` when local coverage is insufficient. Never derives safety from commercial amenities.
 
+---
+
+## 6. Commute & Multi-Modal Routing Provenance
+
+1. **Free-Flow Duration (`freeFlowMin`):**
+   - Source: `routing` (OSRM `/table` and `/route` endpoints).
+   - Confidence: `medium` (uncongested base road network timing).
+2. **Road Distance (`distanceKm`):**
+   - Source: `routing` (OSRM route/table distance in meters converted to km).
+   - Confidence: `high` (verified OSM street network graph distance).
+3. **Peak Commute Estimate (`peakEstimateMin`):**
+   - Source: `heuristic` ($T_{\text{peak}} = T_{\text{freeflow}} \times (1 + \alpha_{\text{city}} \times (1 - \exp(-d/8)))$).
+   - Confidence: `low` (clearly labelled model estimate with confidence range).
+   - Tier lookup derives $\alpha$ strictly from administrative geocoder tags.
+4. **Transit Mode Commute:**
+   - Source: `unavailable` (`null`).
+   - Confidence: `none`.
+   - Explicit note: `"Transit schedule routing is unverified in v1; public transit GTFS unavailable"`.
+
+
 

@@ -188,4 +188,35 @@ All entries in this register were established via real network probes executed f
   - Institutions / Regional: 1500m (healthcare, education, leisure, railStations, safetyInfrastructure)
 - **Failure Semantics:** Confirmed by unit test that failed requests produce explicit `null` with `source: "unavailable"` and descriptive `note`, never falling back to fake defaults or zero.
 
+---
+
+## 8. Phase 5 Commute Engine Verification
+
+- **Verification Date:** 2026-10-04
+- **Verification Suites:** `tests/commute.test.ts` & `npm run smoke` (`scripts/smoke.ts`)
+- **Endpoints Used:** `https://routing.openstreetmap.de/routed-car/table/v1/driving/` with fallback to `https://router.project-osrm.org`.
+
+### 8.1 Live Smoke Commute Test Outputs
+1. **Bengaluru (Mega-Metro, $\alpha = 2.3$):**
+   - Fair Field Layout $\rightarrow$ City Anchor: Free-flow **5m** (2.2 km), Peak **8m** (range: 7–9m)
+   - Cubbonpet $\rightarrow$ City Anchor: Free-flow **4m** (2.0 km), Peak **6m** (range: 5–7m)
+   - D'Souza Layout $\rightarrow$ City Anchor: Free-flow **5m** (1.7 km), Peak **7m** (range: 6–8m)
+   - Gandhinagar $\rightarrow$ City Anchor: Free-flow **5m** (2.3 km), Peak **8m** (range: 7–9m)
+   - Sampangirama Nagar $\rightarrow$ City Anchor: Free-flow **4m** (1.9 km), Peak **6m** (range: 5–7m)
+   - Batch query duration: **1,812 ms** for 5 localities $\times$ 1 destination.
+
+2. **Pune (Large Metro, $\alpha = 1.6$):**
+   - Shaniwar Peth $\rightarrow$ City Anchor: Free-flow **1m** (0.5 km), Peak **1m** (range: 1–1m)
+   - Kasba Peth $\rightarrow$ City Anchor: Free-flow **2m** (1.4 km), Peak **3m** (range: 3–3m)
+   - Mangalwar Peth $\rightarrow$ City Anchor: Free-flow **2m** (1.3 km), Peak **2m** (range: 2–2m)
+   - Narayan Peth $\rightarrow$ City Anchor: Free-flow **2m** (1.2 km), Peak **2m** (range: 2–2m)
+   - Shukrawar Peth $\rightarrow$ City Anchor: Free-flow **2m** (1.5 km), Peak **3m** (range: 3–3m)
+   - Batch query duration: **1,650 ms** for 5 localities $\times$ 1 destination.
+
+### 8.2 Unverified Modes Verification
+- Verified that `transit` mode is visibly disabled/unverified in v1:
+  - `freeFlowMin: { value: null, source: "unavailable", confidence: "none", note: "Transit schedule routing is unverified in v1; public transit GTFS unavailable" }`
+  - Zero fabricated transit numbers.
+
+
 
