@@ -5,7 +5,8 @@ import {
   createEngine,
   type Preferences,
   type SearchState,
-  type AreaSummary
+  type AreaSummary,
+  type PipelineDependencies
 } from "../src/engine";
 import { MemoryStorageAdapter } from "../src/engine/infra/storage";
 import type { NominatimGeocodingProvider } from "../src/engine/providers/geocoding/nominatim";
@@ -29,7 +30,7 @@ describe("Phase 7: Pipeline Orchestration & Live Engine", () => {
     priorityFocus: "commute"
   };
 
-  const createMockDeps = (opts?: { failAmenityAreaId?: string }) => {
+  const createMockDeps = (opts?: { failAmenityAreaId?: string }): PipelineDependencies => {
     const fakeGeocoding = {
       resolveCity: vi.fn().mockResolvedValue({
         query: "Bengaluru",
@@ -175,6 +176,123 @@ describe("Phase 7: Pipeline Orchestration & Live Engine", () => {
       expect(failedDetail).toBeDefined();
       expect(failedDetail?.amenities.healthcare.value).toBeNull();
       expect(failedDetail?.dataCompleteness).toBeLessThan(1.0);
+    });
+
+    it("trips circuit breaker on consecutive amenity batch failures and marks remaining localities as unavailable", async () => {
+      const deps = createMockDeps();
+      const localities = Array.from({ length: 16 }, (_, i) => ({
+        id: `node/${i + 1}`,
+        name: `Locality ${i + 1}`,
+        osmType: "node" as const,
+        osmId: i + 1,
+        lat: 12.9 + i * 0.01,
+        lon: 77.6 + i * 0.01
+      }));
+      (deps.localities.discoverLocalities as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        localities,
+        totalCandidates: localities.length,
+        sourceNote: "Mock 16 localities"
+      });
+
+      let callCount = 0;
+      deps.amenities.getBatchProfiles = vi.fn().mockImplementation(() => {
+        callCount++;
+        return Promise.reject(new Error("HTTP 429 Too Many Requests"));
+      });
+
+      const pipeline = new SearchPipeline(deps);
+      const states: SearchState[] = [];
+      const abortController = new AbortController();
+
+      const result = await pipeline.execute(
+        "test-circuit-breaker",
+        samplePrefs,
+        abortController.signal,
+        (s) => states.push(s)
+      );
+
+      const lastState = states[states.length - 1];
+      expect(lastState.stage).toBe("done");
+      expect(lastState.isComplete).toBe(true);
+      expect(result.areas).toHaveLength(16);
+
+      // 3 failures occurred, tripping the breaker; 4th batch skipped
+      expect(callCount).toBe(3);
+      expect(lastState.localityErrors?.["node/13"]).toContain("service rate limit or failure threshold reached");
+      expect(lastState.localityErrors?.["node/16"]).toContain("service rate limit or failure threshold reached");
+
+      const detail13 = result.details.get("node/13");
+      expect(detail13?.amenities.healthcare.value).toBeNull();
+    });
+
+    it("enforces maxAmenityStageMs time budget and marks timed-out localities honestly", async () => {
+      const deps = createMockDeps();
+      const localities = Array.from({ length: 8 }, (_, i) => ({
+        id: `node/${i + 1}`,
+        name: `Locality ${i + 1}`,
+        osmType: "node" as const,
+        osmId: i + 1,
+        lat: 12.9 + i * 0.01,
+        lon: 77.6 + i * 0.01
+      }));
+      (deps.localities.discoverLocalities as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+        localities,
+        totalCandidates: localities.length,
+        sourceNote: "Mock 8 localities"
+      });
+
+      deps.maxAmenityStageMs = 15; // 15ms budget
+
+      deps.amenities.getBatchProfiles = vi.fn().mockImplementation(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 25));
+        const map = new Map();
+        for (let i = 1; i <= 4; i++) {
+          map.set(`node/${i}`, {
+            amenities: {
+              healthcare: { value: 5, source: "osm", confidence: "high" },
+              education: { value: 5, source: "osm", confidence: "high" },
+              grocery: { value: 5, source: "osm", confidence: "high" },
+              food: { value: 5, source: "osm", confidence: "high" },
+              leisure: { value: 5, source: "osm", confidence: "high" },
+              busStops: { value: 2, source: "osm", confidence: "high" },
+              railStations: { value: 0, source: "osm", confidence: "high" }
+            },
+            safety: {
+              policeCount: { value: 1, source: "osm", confidence: "high" },
+              litRoadsCount: { value: 10, source: "osm", confidence: "high" },
+              surveillanceCount: { value: 2, source: "osm", confidence: "high" },
+              coverageNote: "dense"
+            },
+            totalMappedObjects: 28
+          });
+        }
+        return map;
+      });
+
+      const pipeline = new SearchPipeline(deps);
+      const states: SearchState[] = [];
+      const abortController = new AbortController();
+
+      const result = await pipeline.execute(
+        "test-budget-timeout",
+        samplePrefs,
+        abortController.signal,
+        (s) => states.push(s)
+      );
+
+      const lastState = states[states.length - 1];
+      expect(lastState.stage).toBe("done");
+      expect(lastState.isComplete).toBe(true);
+      expect(result.areas).toHaveLength(8);
+
+      // Batch 1 (node/1 to node/4) was profiled
+      const detail1 = result.details.get("node/1");
+      expect(detail1?.amenities.healthcare.value).toBe(5);
+
+      // Batch 2 (node/5 to node/8) timed out due to stage budget
+      expect(lastState.localityErrors?.["node/5"]).toContain("stage time budget reached");
+      const detail5 = result.details.get("node/5");
+      expect(detail5?.amenities.healthcare.value).toBeNull();
     });
 
     it("handles search cancellation cleanly without uncaught errors", async () => {
