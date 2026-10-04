@@ -32,6 +32,7 @@ import { normalizeAmenityProfiles, type NormalizedLocalityScores } from "../scor
 import { computeSafetyIndicator } from "../scoring/safety";
 import { computeHouseholdFit } from "../scoring/household";
 import { scoreArea } from "../scoring/matchScore";
+import { startSearchTiming, recordStageTiming, endSearchTiming } from "../infra/timing";
 
 export interface PipelineDependencies {
   geocoding: NominatimGeocodingProvider;
@@ -78,7 +79,11 @@ export class SearchPipeline {
       });
     };
 
+    startSearchTiming(searchId);
+    const searchStartTime = performance.now();
+
     // Stage 1: Resolving City
+    const tStage1 = performance.now();
     emit("resolving-city", 10, `Resolving city '${prefs.city}'...`);
 
     if (signal.aborted) {
@@ -89,7 +94,9 @@ export class SearchPipeline {
     let cityResolution;
     try {
       cityResolution = await this.deps.geocoding.resolveCity(prefs.city, signal);
+      recordStageTiming("resolving-city", Math.round(performance.now() - tStage1));
     } catch (err) {
+      recordStageTiming("resolving-city", Math.round(performance.now() - tStage1));
       if (signal.aborted) return { areas: [], details: new Map() };
       const msg = `City resolution failed: ${err instanceof Error ? err.message : String(err)}`;
       errors.push(msg);
@@ -105,6 +112,7 @@ export class SearchPipeline {
     }
 
     // Stage 2: Discovering Localities
+    const tStage2 = performance.now();
     emit(
       "discovering-localities",
       25,
@@ -128,7 +136,9 @@ export class SearchPipeline {
         signal
       );
       candidates = discoveryResult.localities;
+      recordStageTiming("discovering-localities", Math.round(performance.now() - tStage2));
     } catch (err) {
+      recordStageTiming("discovering-localities", Math.round(performance.now() - tStage2));
       if (signal.aborted) return { areas: [], details: new Map() };
       const msg = `Locality discovery failed: ${err instanceof Error ? err.message : String(err)}`;
       errors.push(msg);
@@ -148,6 +158,7 @@ export class SearchPipeline {
     }
 
     // Stage 3: Multi-Modal Routing
+    const tStage3 = performance.now();
     emit("routing", 40, `Calculating commutes for ${candidates.length} localities...`);
 
     if (signal.aborted) {
@@ -180,7 +191,9 @@ export class SearchPipeline {
           localityEffectiveCommutes.set(cand.id, cRes.effectiveCommuteMin);
         }
       });
+      recordStageTiming("routing", Math.round(performance.now() - tStage3));
     } catch (err) {
+      recordStageTiming("routing", Math.round(performance.now() - tStage3));
       // Entire routing stage failure: record error and treat all commutes as null
       errors.push(`Routing batch error: ${err instanceof Error ? err.message : String(err)}`);
       for (const cand of candidates) {
@@ -195,6 +208,7 @@ export class SearchPipeline {
     }
 
     // Stage 4: Profiling Amenities
+    const tStage4 = performance.now();
     emit("profiling-amenities", 50, "Profiling neighborhood amenities...");
 
     const rawAmenityProfiles: Map<AreaId, AmenityProfileResult> = new Map();
@@ -245,8 +259,10 @@ export class SearchPipeline {
         `Profiling amenities (${i + 1}/${candidates.length}): ${cand.name}...`
       );
     }
+    recordStageTiming("profiling-amenities", Math.round(performance.now() - tStage4));
 
     // Stage 5: Multi-Criteria Scoring & Normalization
+    const tStage5 = performance.now();
     emit("scoring", 90, "Normalizing scores and generating explanations...");
 
     if (signal.aborted) {
@@ -344,6 +360,8 @@ export class SearchPipeline {
       }
     });
 
+    recordStageTiming("scoring", Math.round(performance.now() - tStage5));
+
     // Stage 6: Done
     emit(
       "done",
@@ -352,6 +370,8 @@ export class SearchPipeline {
       preliminarySummaries,
       true
     );
+
+    endSearchTiming(searchId, Math.round(performance.now() - searchStartTime));
 
     return {
       areas: preliminarySummaries,

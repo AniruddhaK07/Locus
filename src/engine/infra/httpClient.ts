@@ -1,5 +1,15 @@
 import type { ResponseCache } from "./cache";
 import type { RateLimitQueue } from "./queue";
+import { recordRequestTiming, type RequestTimingRecord } from "./timing";
+
+function detectService(url: string, name?: string): RequestTimingRecord["service"] {
+  const combined = `${url} ${name || ""}`.toLowerCase();
+  if (combined.includes("overpass")) return "Overpass";
+  if (combined.includes("nominatim")) return "Nominatim";
+  if (combined.includes("osrm") || combined.includes("routed-") || combined.includes("project-osrm")) return "OSRM";
+  if (combined.includes("photon")) return "Photon";
+  return "Other";
+}
 
 export interface RequestOptions {
   method?: "GET" | "POST";
@@ -64,6 +74,18 @@ export class HttpClient {
     if (cacheKey && this.cache) {
       const cached = await this.cache.get<T>(cacheKey);
       if (cached !== null && cached !== undefined) {
+        recordRequestTiming({
+          service: detectService(endpointPath, typeof target !== "string" ? target.name : target),
+          url: endpointPath,
+          mirror: "CACHE",
+          status: 200,
+          retries: 0,
+          queueWaitMs: 0,
+          networkMs: 0,
+          durationMs: 0,
+          backoffMs: 0,
+          cached: true
+        });
         return cached;
       }
     }
@@ -86,10 +108,16 @@ export class HttpClient {
       }
 
       // Helper for a single network attempt
-      const attemptFetch = async (attempt: number): Promise<T> => {
+      const attemptFetch = async (
+        attempt: number,
+        queueWaitMs: number = 0,
+        backoffAccumMs: number = 0
+      ): Promise<T> => {
         // Create combined abort controller
         const timeoutController = new AbortController();
+        let isTimedOut = false;
         const timeoutId = setTimeout(() => {
+          isTimedOut = true;
           timeoutController.abort(new DOMException("Request timed out", "TimeoutError"));
         }, timeoutMs);
 
@@ -98,6 +126,7 @@ export class HttpClient {
         };
         signal?.addEventListener("abort", onAbort);
 
+        const netStart = performance.now();
         try {
           const res = await fetch(fullUrl, {
             method,
@@ -108,21 +137,46 @@ export class HttpClient {
             signal: timeoutController.signal
           });
 
+          const netMs = Math.round(performance.now() - netStart);
+
           // Check for retryable HTTP errors (429 Too Many Requests or 5xx Server Errors)
           if (res.status === 429 || (res.status >= 500 && res.status <= 504)) {
             const errorText = await res.text().catch(() => "");
+            recordRequestTiming({
+              service: detectService(fullUrl, mirrorName),
+              url: fullUrl,
+              mirror: baseUrl,
+              status: res.status,
+              retries: attempt,
+              queueWaitMs: Math.round(queueWaitMs),
+              networkMs: netMs,
+              durationMs: Math.round(queueWaitMs + netMs + backoffAccumMs),
+              backoffMs: backoffAccumMs
+            });
+
             if (attempt < maxRetries) {
               // Exponential backoff with jitter (0.8 to 1.2)
               const jitter = 0.8 + Math.random() * 0.4;
               const delay = Math.round(retryBaseDelayMs * Math.pow(2, attempt) * jitter);
               await new Promise((r) => setTimeout(r, delay));
-              return attemptFetch(attempt + 1);
+              return attemptFetch(attempt + 1, queueWaitMs, backoffAccumMs + delay);
             }
             throw new HttpError(res.status, res.statusText, fullUrl, errorText.slice(0, 200));
           }
 
           if (!res.ok) {
             const errorText = await res.text().catch(() => "");
+            recordRequestTiming({
+              service: detectService(fullUrl, mirrorName),
+              url: fullUrl,
+              mirror: baseUrl,
+              status: res.status,
+              retries: attempt,
+              queueWaitMs: Math.round(queueWaitMs),
+              networkMs: netMs,
+              durationMs: Math.round(queueWaitMs + netMs + backoffAccumMs),
+              backoffMs: backoffAccumMs
+            });
             throw new HttpError(res.status, res.statusText, fullUrl, errorText.slice(0, 200));
           }
 
@@ -138,6 +192,18 @@ export class HttpClient {
             throw new DOMException("Aborted", "AbortError");
           }
 
+          recordRequestTiming({
+            service: detectService(fullUrl, mirrorName),
+            url: fullUrl,
+            mirror: baseUrl,
+            status: res.status,
+            retries: attempt,
+            queueWaitMs: Math.round(queueWaitMs),
+            networkMs: netMs,
+            durationMs: Math.round(queueWaitMs + netMs + backoffAccumMs),
+            backoffMs: backoffAccumMs
+          });
+
           // Cache on success
           if (cacheKey && this.cache) {
             await this.cache.set(cacheKey, parsedData, cacheTtlMs);
@@ -149,6 +215,22 @@ export class HttpClient {
           }
 
           return parsedData;
+        } catch (err) {
+          const netMs = Math.round(performance.now() - netStart);
+          if (!(err instanceof HttpError)) {
+            recordRequestTiming({
+              service: detectService(fullUrl, mirrorName),
+              url: fullUrl,
+              mirror: baseUrl,
+              status: isTimedOut ? "TIMEOUT" : "ERROR",
+              retries: attempt,
+              queueWaitMs: Math.round(queueWaitMs),
+              networkMs: netMs,
+              durationMs: Math.round(queueWaitMs + netMs + backoffAccumMs),
+              backoffMs: backoffAccumMs
+            });
+          }
+          throw err;
         } finally {
           clearTimeout(timeoutId);
           signal?.removeEventListener("abort", onAbort);
@@ -157,7 +239,7 @@ export class HttpClient {
 
       // Wrap in rate-limit queue if specified
       if (queue) {
-        return queue.enqueue(() => attemptFetch(0), signal);
+        return queue.enqueue((qWait) => attemptFetch(0, qWait), signal);
       }
       return attemptFetch(0);
     };

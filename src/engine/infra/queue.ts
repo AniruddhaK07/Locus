@@ -11,8 +11,9 @@ export interface QueueOptions {
 }
 
 interface QueuedItem<T> {
-  task: () => Promise<T>;
+  task: (queueWaitMs: number) => Promise<T>;
   signal?: AbortSignal;
+  enqueuedAt: number;
   resolve: (value: T) => void;
   reject: (reason?: unknown) => void;
 }
@@ -38,13 +39,13 @@ export class RateLimitQueue {
     return this.runningCount;
   }
 
-  enqueue<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
+  enqueue<T>(task: (queueWaitMs: number) => Promise<T>, signal?: AbortSignal): Promise<T> {
     if (signal?.aborted) {
       return Promise.reject(new DOMException("Aborted", "AbortError"));
     }
 
     return new Promise<T>((resolve, reject) => {
-      const item: QueuedItem<T> = { task, signal, resolve, reject };
+      const item: QueuedItem<T> = { task, signal, enqueuedAt: Date.now(), resolve, reject };
 
       if (signal) {
         const onAbort = () => {
@@ -95,8 +96,9 @@ export class RateLimitQueue {
 
     this.runningCount++;
     this.lastDispatchTime = Date.now();
+    const queueWaitMs = Math.max(0, Date.now() - item.enqueuedAt);
 
-    item.task()
+    item.task(queueWaitMs)
       .then((val) => item.resolve(val))
       .catch((err) => item.reject(err))
       .finally(() => {

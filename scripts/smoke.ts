@@ -19,6 +19,7 @@ import { OverpassLocalityProvider } from "../src/engine/providers/localities/ove
 import { OverpassAmenityProvider } from "../src/engine/providers/amenities/overpass";
 import { OsrmRoutingProvider } from "../src/engine/providers/routing/osrm";
 import { LiveEngine } from "../src/engine/live/liveEngine";
+import { enableTiming } from "../src/engine/infra/timing";
 import type { Preferences, SearchState } from "../src/engine/domain/types";
 
 // Parse CLI flags
@@ -166,14 +167,13 @@ async function runSmokeForCity(
   const searchHandle = liveEngine.startSearch(prefs);
 
   const finalState = await new Promise<SearchState>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("LiveEngine search timed out after 180s")), 180000);
+    const timeout = setTimeout(() => reject(new Error("LiveEngine search timed out after 900s")), 900000);
     searchHandle.subscribe((state) => {
       if (state.stage === "profiling-amenities" || state.stage === "scoring") {
-        process.stdout.write(`\r  Progress: ${state.progress}% | ${state.statusMessage.padEnd(60, " ")}`);
+        console.log(`  [Progress ${state.progress}%]: ${state.statusMessage}`);
       }
       if (state.isComplete) {
         clearTimeout(timeout);
-        process.stdout.write("\n");
         resolve(state);
       }
     });
@@ -203,6 +203,7 @@ async function runSmokeForCity(
 }
 
 async function main() {
+  enableTiming(true);
   const cityArg = getArg("--city");
   const testCities = cityArg ? [cityArg] : ["Bengaluru", "Pune"];
 
