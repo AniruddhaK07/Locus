@@ -1,9 +1,11 @@
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Button } from "../primitives/Button";
+import { getEngine, setEngineMode } from "@engine";
 
 export function HomePage() {
   const navigate = useNavigate();
+  const engine = getEngine();
   const [hasCachedSearch, setHasCachedSearch] = useState(false);
 
   useEffect(() => {
@@ -67,6 +69,46 @@ export function HomePage() {
           >
             Resume last search
           </Button>
+        )}
+      </div>
+
+      <div style={{ marginTop: "var(--space-4)", textAlign: "center" }}>
+        {engine.mode === "snapshot" ? (
+          <a
+            href="/plan?engine=live"
+            data-feature="switch-live-home-link"
+            onClick={(e) => {
+              e.preventDefault();
+              setEngineMode("live");
+              navigate("/plan?engine=live");
+            }}
+            style={{
+              fontSize: "var(--text-xs)",
+              color: "var(--ink-muted)",
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+          >
+            Switch to live search
+          </a>
+        ) : (
+          <a
+            href="/plan?engine=snapshot"
+            data-feature="try-snapshot-home-link"
+            onClick={(e) => {
+              e.preventDefault();
+              setEngineMode("snapshot");
+              navigate("/plan?engine=snapshot");
+            }}
+            style={{
+              fontSize: "var(--text-xs)",
+              color: "var(--ink-muted)",
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+          >
+            Try recorded demo cities (instant)
+          </a>
         )}
       </div>
     </main>

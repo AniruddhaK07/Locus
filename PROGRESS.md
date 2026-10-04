@@ -197,7 +197,21 @@
 
 ---
 
+## Resilient Live & Explicit Mode Toggle (feat/resilient-live) Verification & Acceptance Results
+
+1. **Commands Executed:**
+   - `npm run check` $\rightarrow$ Passed (0 TS errors, 0 ESLint errors/warnings, 178 unit tests passed across 20 test suites in 3.1s).
+   - `npm run check:features` $\rightarrow$ Passed (9 UI Contract feature ID tests passed).
+2. **Acceptance Criteria Verification:**
+   - **Step 1 (Root Cause Isolation):** Systematically probed Roland Olbricht Overpass German cluster (`overpass-api.de`, `z.`, `lz4.`). Proved Apache returns `406 Not Acceptable` (375 bytes, HTML error without CORS headers) specifically when `Referer` contains `*.vercel.app` OR when a browser User-Agent (`Mozilla/5.0...`) has no Referer. Custom UA (`Locus/...`) without Referer returns `200 OK`. Full matrix recorded in Section 12 of `docs/VERIFIED_FACTS.md`.
+   - **Step 2 (Honest Error States):** `PipelineProgress` never displays `"Search complete"` when `stage === "error"`. It renders `data-pipeline-status="error"` and `"Search failed · <reason>"`. `ErrorState` provides dual explicit actions: `"Try again"` and `"Use recorded demo cities"`.
+   - **Step 3 (Explicit Mode Toggle & Persistence):** Added `?engine=snapshot` and `?engine=live` URL parameters, tab `sessionStorage` (`locus_engine_mode`) persistence, quiet `"Try recorded demo cities (instant)"` link on Home and in the error state, and `"Switch to live search"` link. `ModeBanner` displays the actual engine mode in use, never silently falling back from live to snapshot.
+   - **Test Suite Expansion:** Added `tests/resilienceAndModes.test.tsx` with 7 tests covering pipeline error progress, error state actions, mode resolution, tab persistence, and ModeBanner display. Total test count reached 178 passing tests.
+
+---
+
 ## Resume Here
-- **Current Branch:** `perf/live-speed` (clean working tree, pushed to origin).
-- **Status:** Step 2 live performance optimizations completed and verified against live Delhi run. All 168 tests green.
-- **Next Action:** Await user review/approval of the performance benchmark report before merging `perf/live-speed` into `main`.
+- **Current Branch:** `feat/resilient-live` (clean working tree).
+- **Status:** Steps 1, 2, and 3 completed and verified. Test suite 100% green.
+- **Next Action:** Review Step 1 findings & trade-offs proposal for Step 4 (Relay vs Custom Domain vs Alternative Mirrors), merge `feat/resilient-live` into `main`.
+

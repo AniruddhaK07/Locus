@@ -161,6 +161,7 @@ export interface PortalLink {
 }
 
 export interface MethodInfo {
+  engineMode?: "live" | "mock" | "snapshot";
   weights: Record<string, number>;
   confidenceFactors: Record<Confidence, number>;
   radii: Record<string, number>;
@@ -178,6 +179,7 @@ export interface EngineOptions {
 }
 
 export interface Engine {
+  readonly mode?: "live" | "mock" | "snapshot";
   suggestPlaces(query: string, hint?: { city?: string }, signal?: AbortSignal): Promise<PlaceSuggestion[]>;
   startSearch(prefs: Preferences): SearchHandle;
   getArea(id: AreaId): Promise<AreaDetail | null>;

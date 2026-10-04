@@ -106,8 +106,8 @@ Dark mode uses a quiet, warm espresso-charcoal theme (`--bg: #1F1D20`). Contrast
 | `Tooltip` | `content: ReactNode`, `children: ReactNode` | hidden, visible on hover and keyboard `:focus-within` |
 | `Toast` | `message: string`, `onDismiss: () => void`, `durationMs?: number` | slide-in, auto-dismiss, accessible polite region |
 | `EmptyState` | `message: string`, `action?: { label, onClick }`, `icon?: ReactNode` | one sentence + one action |
-| `ErrorState` | `message: string`, `onRetry?: () => void`, `retryLabel?: string` | one sentence + one retry action |
-| `ModeBanner` | `mode: "mock"\|"snapshot"\|"live"`, `capturedDate?: string` | mock ("Sample data"), snapshot ("Recorded demo data · captured ..."), live (hidden) |
+| `ErrorState` | `message: string`, `onRetry?: () => void`, `retryLabel?: string`, `secondaryAction?: { label, onClick }` | one sentence + retry action + optional secondary action ("Use recorded demo cities") |
+| `ModeBanner` | `mode?: "mock"\|"snapshot"\|"live"`, `capturedDate?: string` | reflects actual mode: mock ("Sample data"), snapshot ("Recorded demo data · captured ..." + "Switch to live search"), live (hidden) |
 | `LocusMap` | `points: MapPoint[]`, `workplace?`, `selectedId?`, `onSelectPoint?` | SVG cartographic projection, interactive pin aura, popovers, workplace pin, ODbL attribution |
 
 ---

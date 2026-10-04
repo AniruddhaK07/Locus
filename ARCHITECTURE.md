@@ -324,3 +324,24 @@ The search pipeline executes progressively through 6 stages:
    - Eliminates brittle direct URL guessing and anti-bot blocks.
    - Universal Fallback: Always appends a verified Google Search fallback query (`https://www.google.com/search?q=flats+for+rent+in+{area}+{city}`) ensuring the user always has a guaranteed working search link.
    - All generated links strictly use HTTPS on google.com and handle unicode, special characters, and missing cities.
+
+---
+
+## 12. Engine Mode Resolution, Tab Persistence & Honest Error Handling
+
+### 12.1 Explicit Engine Mode Resolution Priority
+Locus implements explicit runtime engine switching via `src/engine/index.ts`:
+1. **Test Runner:** If running inside Vitest (`process.env.VITEST`), always resolves to `"mock"` to ensure 100% deterministic test execution.
+2. **URL Search Parameter:** If `?engine=snapshot` or `?engine=live` is present in `window.location.search`, it updates the active tab's `sessionStorage` (`locus_engine_mode`) and activates that engine.
+3. **Tab Session Storage:** If `sessionStorage.getItem("locus_engine_mode")` exists, it retains that mode across navigations within the tab.
+4. **Environment Variable:** Falls back to `import.meta.env.VITE_ENGINE_MODE`.
+5. **Default:** `"mock"`.
+
+### 12.2 Honest Error Architecture & Anti-Silent Fallback
+1. **Zero Silent Degradation:** The calculation engine never silently falls back from `live` to `snapshot`. If upstream OpenStreetMap or Overpass servers reject requests or time out, the engine halts with an explicit error.
+2. **Honest Progress Display:** `PipelineProgress` never displays `"Search complete"` when `stage === "error"`. It displays `"Search failed · <reason>"` with a failure indicator.
+3. **User Action Choice:** In the error state, `ErrorState` provides two explicit user actions:
+   - Primary: `"Try again"` to retry the live search.
+   - Secondary: `"Use recorded demo cities"` to explicitly opt into recorded snapshot mode.
+4. **ModeBanner Transparency:** `ModeBanner` inspects the engine's actual mode (`engine.mode`). When in snapshot mode, it displays `"Recorded demo data · captured {date}"` alongside a quiet link to `"Switch to live search"`. In live mode, it remains quiet (`null`).
+

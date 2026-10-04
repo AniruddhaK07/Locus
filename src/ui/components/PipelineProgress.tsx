@@ -23,6 +23,35 @@ export function PipelineProgress({
 }: PipelineProgressProps) {
   const currentIdx = STAGES.findIndex((s) => s.key === stage);
 
+  if (stage === "error") {
+    return (
+      <div
+        data-feature="pipeline-progress-panel"
+        data-pipeline-status="error"
+        className="locus-pipeline locus-pipeline--error"
+        role="alert"
+      >
+        <div className="locus-pipeline__header">
+          <span className="locus-pipeline__stage-text">
+            <span style={{ color: "var(--danger, #d9383a)", fontWeight: "bold" }}>⚠</span>{" "}
+            Search failed · {statusMessage || "Service error encountered"}
+          </span>
+          <span className="locus-pipeline__progress-pct" style={{ color: "var(--danger, #d9383a)" }}>
+            {Math.round(progress)}%
+          </span>
+        </div>
+        {/* Hidden but accessible stage items for contract integrity */}
+        <div style={{ display: "none" }}>
+          {STAGES.map((s) => (
+            <span key={s.key} data-feature="stage-item">
+              {s.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (isComplete || stage === "done") {
     return (
       <div

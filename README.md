@@ -89,19 +89,21 @@ The Locus presentation layer (`src/ui/`) is a minimalist, magazine-editorial int
   5. `/compare` — Side-by-side metric matrix comparing candidate localities with sticky pinned metric headers for mobile horizontal scrolling and winner markers.
   6. `/saved` — Persistent saved shortlist with live count badge, comparison shortcuts, and clipboard share integration.
   7. `/method` — Complete methodology transparency route detailing base weights, query radii, routing status, provenance legend, and an interactive weighting simulator.
-- **Engine Modes:**
+- **Engine Modes & Explicit Toggle:**
   - `mock`: Default for offline development (`VITE_ENGINE_MODE=mock`). Renders quiet "Sample data" banner.
-  - `snapshot`: Recorded live data sessions (`VITE_ENGINE_MODE=snapshot`). Renders "Recorded demo data · captured {date}".
-  - `live`: Live OpenStreetMap network querying (`VITE_ENGINE_MODE=live`). Quiet/no banner.
+  - `snapshot`: Recorded live data sessions (`VITE_ENGINE_MODE=snapshot` or `?engine=snapshot`). Renders "Recorded demo data · captured {date}" with a quiet "Switch to live search" link.
+  - `live`: Live OpenStreetMap network querying (`VITE_ENGINE_MODE=live` or `?engine=live`). Quiet/no banner.
+  - **URL & Tab Persistence:** Pass `?engine=snapshot` or `?engine=live` to switch modes instantly. Remembers choice per browser tab (`sessionStorage`).
+  - **Honest Error Handling:** When external OSM services reject requests (e.g. Overpass 406 on deployed sites) or time out, Locus displays honest diagnostics, never displays "Search complete", and offers both "Try again" and "Use recorded demo cities".
 - **Dev Tools:**
   - Route Catalog (`/_map`): Complete directory of all routes, mock scenario triggers, and contract handles.
   - Primitives Showcase (`/primitives`): Demonstrates every UI primitive in every supported state.
   - Production Gating: Dev tools and scenario switchers are gated via `isDevMode()` (`import.meta.env.DEV`, `?dev=1`, or `locus_dev=1`).
 - **Testing & Verification:**
   ```bash
-  npm run check           # Typecheck + ESLint + 18 test suites (157 unit tests)
+  npm run check           # Typecheck + ESLint + 20 test suites (178 unit tests)
   npm run check:features  # UI Contract feature ID guard
-  npm run build           # Production bundle build (CSS gzip: 7.92 kB, JS gzip: 135.17 kB)
+  npm run build           # Production bundle build
   ```
 
 

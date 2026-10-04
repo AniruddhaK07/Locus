@@ -68,6 +68,7 @@ function toAreaSummary(area: AreaDetail): AreaSummary {
 }
 
 export class SnapshotEngine implements Engine {
+  public readonly mode = "snapshot" as const;
   private activeScenario: MockScenario = "normal";
   private areasById = new Map<AreaId, AreaDetail>();
   private defaultCity = "pune";
@@ -297,6 +298,7 @@ export class SnapshotEngine implements Engine {
 
   public method(): MethodInfo {
     return {
+      engineMode: "snapshot",
       weights: BASE_WEIGHTS,
       confidenceFactors: CONFIDENCE_FACTORS,
       radii: QUERY_RADII,

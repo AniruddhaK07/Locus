@@ -143,7 +143,13 @@ export class SearchPipeline {
     } catch (err) {
       recordStageTiming("discovering-localities", Math.round(performance.now() - tStage2));
       if (signal.aborted) return { areas: [], details: new Map() };
-      const msg = `Locality discovery failed: ${err instanceof Error ? err.message : String(err)}`;
+      const errStr = err instanceof Error ? err.message : String(err);
+      let msg = `Locality discovery failed: ${errStr}`;
+      if (errStr.includes("406") || errStr.includes("Not Acceptable")) {
+        msg = `Overpass API rejected locality queries (HTTP 406 Not Acceptable from deployed origin). Direct browser requests are blocked by upstream service policies.`;
+      } else if (errStr.includes("504") || errStr.includes("Gateway Timeout") || errStr.includes("timed out")) {
+        msg = `Overpass API is currently overloaded or timed out. The server could not process the query in time.`;
+      }
       errors.push(msg);
       emit("error", 25, msg, [], true);
       return { areas: [], details: new Map() };

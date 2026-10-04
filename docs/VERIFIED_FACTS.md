@@ -319,3 +319,59 @@ All entries in this register were established via real network probes executed f
   - Time to First Cards: **~18s** (Batch 1 completed in 8.4s)
   - Locality Completeness: **100%** (12/12 localities profiled and ranked)
 
+---
+
+## 12. Deployed Vercel Origin & Overpass 406 Investigation
+
+- **Investigation Date:** 2026-10-04
+- **Problem Statement:** Direct browser `fetch()` POST to `https://lz4.overpass-api.de/api/interpreter` from deployed site `https://locus-ashy-eight.vercel.app` returned `406 Not Acceptable`, Apache/2.4.68 (Debian), 375 bytes, without CORS headers (causing browser CORS errors).
+- **Probing Methodology:** Used `curl.exe` to isolate headers across Origin, Referer, and User-Agent against `https://lz4.overpass-api.de/api/interpreter` and mirror status endpoints.
+
+### 12.1 Probe Matrix & Observed Status Codes
+
+| Test # | User-Agent | Origin | Referer | Result | Details |
+|---|---|---|---|---|---|
+| 1 | `curl/8.21.0` (default) | None | None | **406 Not Acceptable** | Rejected by default anti-bot filter |
+| 2 | `Mozilla/5.0...` (Chrome) | None | None | **406 Not Acceptable** | Browser UA without Referer rejected |
+| 3 | `Mozilla/5.0...` (Chrome) | `http://localhost:4173` | `http://localhost:4173/` | **200 OK** / **504** | Accepted by Apache, routed to OSM3S |
+| 4 | `Mozilla/5.0...` (Chrome) | `https://locus-ashy-eight.vercel.app` | `https://locus-ashy-eight.vercel.app/` | **406 Not Acceptable** | Blocked by Apache mod_security rule |
+| 5 | `Mozilla/5.0...` (Chrome) | `https://locus-ashy-eight.vercel.app` | None | **406 Not Acceptable** | Missing Referer on browser UA rejected |
+| 6 | `Mozilla/5.0...` (Chrome) | `http://localhost:4173` | None | **406 Not Acceptable** | Missing Referer on browser UA rejected |
+| 7 | `Locus/0.1 (+https://...)` | None | None | **200 OK** / **504** | Non-browser UA accepted without Referer |
+| 8 | `Locus/0.1 (+https://...)` | `https://locus-ashy-eight.vercel.app` | None | **200 OK** (`CORS: *`) | Non-browser UA with Vercel Origin accepted |
+| 9 | `Locus/0.1 (+https://...)` | `https://locus-ashy-eight.vercel.app` | `https://locus-ashy-eight.vercel.app/` | **406 Not Acceptable** | Vercel Referer explicitly triggers 406 |
+| 10 | `Mozilla/5.0...` (Chrome) | None | `https://mycustomdomain.com/` | **200 OK** | Custom domain Referer accepted |
+| 11 | `Mozilla/5.0...` (Chrome) | None | `https://someotherapp.vercel.app/` | **406 Not Acceptable** | Entire `*.vercel.app` domain is blacklisted |
+
+### 12.2 Exact 406 Response Body
+```html
+HTTP/1.1 406 Not Acceptable
+Date: Sun, 04 Oct 2026 16:54:15 GMT
+Server: Apache/2.4.68 (Debian)
+Content-Length: 375
+Connection: close
+Content-Type: text/html; charset=iso-8859-1
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html><head>
+<title>406 Not Acceptable</title>
+</head><body>
+<h1>Not Acceptable</h1>
+<p>An appropriate representation of the requested resource could not be found on this server.</p>
+<hr>
+<address>Apache/2.4.68 (Debian) Server at lz4.overpass-api.de Port 443</address>
+</body></html>
+```
+*(This 406 response includes NO `Access-Control-Allow-Origin` header, causing browser engines to block it as a CORS violation).*
+
+### 12.3 Root Cause & Browser Security Constraints
+1. **The Root Cause:** Apache on Roland Olbricht's German Overpass cluster (`overpass-api.de`, `z.overpass-api.de`, `lz4.overpass-api.de`) enforces:
+   - A blacklist on `Referer: *.vercel.app`.
+   - A requirement that any client sending a browser User-Agent (`Mozilla/5.0...`) must provide a valid, non-blacklisted Referer.
+2. **Browser Sandbox Trap:**
+   - Under W3C Fetch / XMLHttpRequest specifications, `User-Agent` and `Referer` are **forbidden request headers** that JavaScript cannot override or fake.
+   - If the web app uses `referrerPolicy: "no-referrer"`, the browser omits the Referer, but Apache sees the browser `User-Agent: Mozilla/5.0...` without a Referer and immediately responds with 406.
+   - If the web app sends default headers, the browser attaches `Referer: https://locus-ashy-eight.vercel.app/`, which matches Apache's `*.vercel.app` blacklist and responds with 406.
+   - Therefore, direct browser fetches from any `*.vercel.app` domain to the Roland Olbricht Overpass cluster cannot succeed without an intermediate relay, custom domain, or alternative mirror.
+
+

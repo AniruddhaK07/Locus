@@ -31,6 +31,7 @@ export const ENGINE_VERSION = "0.1.0";
 export type CompatibleEngine = Engine & {
   getScenario(): MockScenario;
   setScenario(s: MockScenario): void;
+  mode: "live" | "mock" | "snapshot";
 };
 
 /**
@@ -51,19 +52,79 @@ export function createEngine(opts: EngineOptions = { mode: "mock" }): Compatible
 // Global default engine instance for UI convenience
 let defaultEngine: CompatibleEngine | null = null;
 
+/**
+ * Resolves the active engine mode adhering strictly to priority:
+ * 1. Test runner -> "mock" (always pinned in Vitest)
+ * 2. URL search param ?engine=snapshot|live|mock (updates tab sessionStorage)
+ * 3. Tab sessionStorage (remembered per browser tab)
+ * 4. Environment variable VITE_ENGINE_MODE
+ * 5. Default "mock"
+ */
+export function resolveEngineMode(): "live" | "mock" | "snapshot" {
+  const isTest = typeof process !== "undefined" && Boolean(process.env.VITEST);
+  if (isTest) {
+    return "mock";
+  }
+
+  // 1. Check URL search param (?engine=...)
+  if (typeof window !== "undefined" && window.location?.search) {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const engineParam = params.get("engine");
+      if (engineParam === "snapshot" || engineParam === "live" || engineParam === "mock") {
+        try {
+          sessionStorage.setItem("locus_engine_mode", engineParam);
+        } catch {
+          // sessionStorage disabled
+        }
+        return engineParam;
+      }
+    } catch {
+      // Malformed location
+    }
+  }
+
+  // 2. Check tab sessionStorage (remembered per browser tab)
+  if (typeof window !== "undefined") {
+    try {
+      const stored = sessionStorage.getItem("locus_engine_mode");
+      if (stored === "snapshot" || stored === "live" || stored === "mock") {
+        return stored;
+      }
+    } catch {
+      // sessionStorage disabled
+    }
+  }
+
+  // 3. Fall back to environment variable or mock
+  const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env;
+  if (metaEnv?.VITE_ENGINE_MODE === "live") {
+    return "live";
+  }
+  if (metaEnv?.VITE_ENGINE_MODE === "snapshot") {
+    return "snapshot";
+  }
+
+  return "mock";
+}
+
+/**
+ * Sets engine mode preference for the current browser tab and resets the active engine.
+ */
+export function setEngineMode(mode: "live" | "mock" | "snapshot"): void {
+  if (typeof window !== "undefined") {
+    try {
+      sessionStorage.setItem("locus_engine_mode", mode);
+    } catch {
+      // ignore
+    }
+  }
+  resetDefaultEngine();
+}
+
 export function getEngine(opts?: EngineOptions): CompatibleEngine {
   if (!defaultEngine) {
-    const isTest = typeof process !== "undefined" && Boolean(process.env.VITEST);
-    const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env;
-    let mode: "live" | "mock" | "snapshot" = "mock";
-    if (!isTest) {
-      if (metaEnv?.VITE_ENGINE_MODE === "live") {
-        mode = "live";
-      } else if (metaEnv?.VITE_ENGINE_MODE === "snapshot") {
-        mode = "snapshot";
-      }
-    }
-    const finalMode = opts?.mode ?? mode;
+    const finalMode = opts?.mode ?? resolveEngineMode();
     defaultEngine = createEngine({ mode: finalMode, ...opts });
   }
   return defaultEngine;
@@ -72,3 +133,4 @@ export function getEngine(opts?: EngineOptions): CompatibleEngine {
 export function resetDefaultEngine(): void {
   defaultEngine = null;
 }
+

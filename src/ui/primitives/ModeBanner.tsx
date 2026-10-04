@@ -1,3 +1,5 @@
+import { getEngine, setEngineMode } from "@engine";
+
 export interface ModeBannerProps {
   mode?: "mock" | "snapshot" | "live";
   capturedDate?: string;
@@ -9,14 +11,16 @@ export function ModeBanner({
   capturedDate,
   className = "",
 }: ModeBannerProps) {
-  // Determine mode from prop or environment
-  const metaEnv = (import.meta as unknown as { env?: Record<string, string> }).env;
-  let mode: "mock" | "snapshot" | "live" = explicitMode ?? "mock";
-
-  if (!explicitMode && metaEnv?.VITE_ENGINE_MODE) {
-    if (metaEnv.VITE_ENGINE_MODE === "live") mode = "live";
-    else if (metaEnv.VITE_ENGINE_MODE === "snapshot") mode = "snapshot";
-    else mode = "mock";
+  let mode: "mock" | "snapshot" | "live";
+  if (explicitMode) {
+    mode = explicitMode;
+  } else {
+    try {
+      const engine = getEngine();
+      mode = engine.mode ?? "mock";
+    } catch {
+      mode = "mock";
+    }
   }
 
   if (mode === "live") {
@@ -41,6 +45,16 @@ export function ModeBanner({
     text = `Recorded demo data · captured ${dateStr}`;
   }
 
+  const handleSwitchToLive = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setEngineMode("live");
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("engine", "live");
+      window.location.href = url.toString();
+    }
+  };
+
   return (
     <aside
       className={`locus-mode-banner ${className}`.trim()}
@@ -49,6 +63,23 @@ export function ModeBanner({
       data-engine-mode={mode}
     >
       <span>{text}</span>
+      {mode === "snapshot" && (
+        <a
+          href="?engine=live"
+          data-feature="switch-live-link"
+          onClick={handleSwitchToLive}
+          style={{
+            marginLeft: "12px",
+            color: "inherit",
+            textDecoration: "underline",
+            fontSize: "inherit",
+            cursor: "pointer",
+          }}
+        >
+          Switch to live search
+        </a>
+      )}
     </aside>
   );
 }
+

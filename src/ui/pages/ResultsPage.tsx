@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import type { AreaId, Preferences, SearchState, SortOption, TransportMode, HouseholdType } from "@engine";
-import { getEngine, selectAreas } from "@engine";
+import { getEngine, setEngineMode, selectAreas } from "@engine";
 import { AreaCard } from "../components/AreaCard";
 import { PipelineProgress } from "../components/PipelineProgress";
 import { RefineDisclosure } from "../components/RefineDisclosure";
@@ -180,6 +180,16 @@ export function ResultsPage() {
     setSearchTrigger((prev) => prev + 1);
   };
 
+  const handleUseSnapshot = () => {
+    setEngineMode("snapshot");
+    const query = engine.prefsToQuery(prefs);
+    if (typeof window !== "undefined") {
+      window.location.href = `/results?${query}&engine=snapshot`;
+    } else {
+      navigate(`/results?${query}&engine=snapshot`);
+    }
+  };
+
   // Determine current screen state for integration inspection
   let screenState: "loading" | "ready" | "partial" | "empty" | "error" | "sparse-data" = "ready";
   if (searchState.stage === "error" || (searchState.errors && searchState.errors.length > 0 && searchState.areas.length === 0)) {
@@ -311,9 +321,17 @@ export function ResultsPage() {
           {/* Error State */}
           {screenState === "error" && (
             <ErrorState
-              message={searchState.errors[0] || "Pipeline service unreachable. Please try again."}
+              message={
+                searchState.errors[0] ||
+                "External map or locality services could not complete requests (e.g. Overpass API 406 Not Acceptable or network timeout). Live searches are currently blocked by upstream service policies."
+              }
               onRetry={handleRetrySearch}
               retryLabel="Try again"
+              secondaryAction={{
+                label: "Use recorded demo cities",
+                onClick: handleUseSnapshot,
+                dataFeature: "use-snapshot-btn",
+              }}
             />
           )}
 

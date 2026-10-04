@@ -53,6 +53,7 @@ import { buildPortalLinks } from "../features/portals";
 import { SavedStore } from "../features/saved";
 
 export class LiveEngine implements Engine {
+  public readonly mode = "live" as const;
   private storage: StorageAdapter;
   private cache: ResponseCache;
   private httpClient: HttpClient;
@@ -335,6 +336,7 @@ export class LiveEngine implements Engine {
 
   method(): MethodInfo {
     return {
+      engineMode: "live",
       weights: {
         budget: BASE_WEIGHTS.budget,
         commute: BASE_WEIGHTS.commute,

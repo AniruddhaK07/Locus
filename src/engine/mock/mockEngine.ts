@@ -21,6 +21,7 @@ import { buildPortalLinks } from "../features/portals";
 import { SavedStore } from "../features/saved";
 
 export class MockEngine implements Engine {
+  public readonly mode = "mock" as const;
   private scenario: MockScenario;
   private savedStore: SavedStore;
   private rentOverrides: Map<AreaId, number> = new Map();
@@ -270,6 +271,7 @@ export class MockEngine implements Engine {
 
   method(): MethodInfo {
     return {
+      engineMode: "mock",
       weights: {
         budget: 28,
         commute: 27,
