@@ -16,5 +16,8 @@ export default defineConfig({
     globals: true,
     environment: "node",
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "src/**/*.test.ts", "src/**/*.test.tsx"],
+    env: {
+      VITE_ENGINE_MODE: "mock",
+    },
   },
 });
