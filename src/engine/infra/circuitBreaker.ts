@@ -15,6 +15,7 @@ export class CircuitBreaker {
   private failureCount: number = 0;
   private state: "CLOSED" | "OPEN" | "HALF_OPEN" = "CLOSED";
   private lastFailureTime: number = 0;
+  private lastError?: unknown;
   private failureThreshold: number;
   private cooldownMs: number;
 
@@ -26,10 +27,12 @@ export class CircuitBreaker {
   public recordSuccess(): void {
     this.failureCount = 0;
     this.state = "CLOSED";
+    this.lastError = undefined;
   }
 
-  public recordFailure(): void {
+  public recordFailure(err?: unknown): void {
     this.failureCount++;
+    this.lastError = err;
     this.lastFailureTime = performance.now();
     if (this.failureCount >= this.failureThreshold) {
       this.state = "OPEN";
@@ -53,6 +56,10 @@ export class CircuitBreaker {
 
   public getState(): "CLOSED" | "OPEN" | "HALF_OPEN" {
     return this.state;
+  }
+
+  public getLastError(): unknown {
+    return this.lastError;
   }
 
   public reset(): void {
