@@ -176,7 +176,7 @@ Verified versions from `package.json`:
 - **Public Service Usage:** Client-side rate-limiting queues, mirror failover, and local response caching are used to respect community server resources.
 - **Fonts:** [Fraunces](https://github.com/undercasetype/Fraunces) and [Inter](https://github.com/rsms/inter), both licensed under the SIL Open Font License 1.1 (verified in package declarations).
 - **Footer Artwork:** <!-- HUMAN: Artwork attribution / credit for footer image -->
-
+By H.-P.Haack - Antiquariat Dr. Haack Leipzig [1], Public Domain, https://commons.wikimedia.org/w/index.php?curid=3899668
 ---
 
 ## Known Limitations
@@ -246,10 +246,8 @@ npm run check:features
 
 ---
 
-## Team Meridian
+## Built by Team Meridian
+- [Aniruddha Diware](https://github.com/AniruddhaK07) Full stack, testing and feature engineering
+- [Rakshit Dandhare](https://github.com/daemir911) Ideation and UI/UX
 
-<!-- HUMAN: Team member names, roles, and GitHub handles -->
-
-### Background
-
-<!-- HUMAN: Background statement on why Locus was created and the team's motivation -->
+<img width="2048" height="976" alt="ud" src="https://github.com/user-attachments/assets/90c12474-745a-4c3d-bc84-48771daeb8a8" />
