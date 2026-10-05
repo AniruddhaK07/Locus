@@ -1,29 +1,78 @@
 # Locus
 
-> **Honest neighbourhood discovery and relocation intelligence for India.**  
-> Built on $0 infrastructure, zero proprietary API keys, real OpenStreetMap graph data, and zero fabricated numbers.
+Find where to live in India, with every number showing its source.
 
-Locus helps a person relocating within India decide **where to live**.
+[Live Search (Render)](https://locus-cfyg.onrender.com) · [Instant Demo (Vercel)](https://locus-ashy-eight.vercel.app) · <!-- HUMAN: Demo video link (e.g. [Demo Video](https://...)) -->
 
-Users specify a city, a workplace, up to 3 regular destinations, a budget range, a maximum commute, a transport mode, and a household type. Locus discovers real neighbourhoods using live OpenStreetMap data, measures local amenities and connectivity, calculates honest commute estimates, and presents a ranked list with a transparent score breakdown, plain-English explanations, side-by-side comparisons, and links to verified rental searches.
+![Locus candidate neighbourhood results with cartographic map and provenance badges](docs/screens/hero-results-desktop.png)
 
----
+### 60-Second Tour
 
-## Core Principles
-
-1. **Honesty over False Precision:** Every number displayed states where it originated, how it was derived, and its confidence level. If data is missing, it is shown as `null` with a clear explanation—never hidden behind fabricated defaults or silent fallbacks.
-2. **$0 Infrastructure:** Built entirely on open-source OpenStreetMap ecosystem services (Nominatim, Overpass API, OSRM, Photon) without requiring paid API keys or proprietary relays.
-3. **Any Indian City:** No hardcoded city or locality datasets; candidate localities and admin areas are discovered dynamically.
-4. **Strict Decoupling:** The framework-agnostic calculation engine (`src/engine/`) is completely decoupled from the React presentation UI (`src/ui/`), enforced by ESLint boundary rules.
+1. Open the [Instant Demo](https://locus-ashy-eight.vercel.app) to explore pre-recorded sessions (Delhi, Bengaluru, Pune) with zero network cold-start.
+2. Search Delhi to see candidate neighbourhoods discovered dynamically from OpenStreetMap boundaries.
+3. Open an area card (such as Malka Ganj or Koramangala) to inspect the transparent score breakdown, points allocation, raw physical counts, and provenance labels (`[osm]`, `[heuristic]`, `[tier band]`).
+4. Try a live search for any Indian city on the [Render deployment](https://locus-cfyg.onrender.com) to watch the live pipeline query public endpoints directly.
 
 ---
 
-## Getting Started
+## What It Does
+
+- Discovers candidate neighbourhoods dynamically from OpenStreetMap administrative and place hierarchies across any Indian city, with zero hardcoded locality databases.
+- Estimates commute durations across driving, cycling, and walking via OSRM road graph tables, applying a published congestion model for peak hours.
+- Profiles physical everyday amenities (groceries, healthcare, transit, schools, cafes) within pedestrian radii (500 m, 800 m, 1,500 m).
+- Ranks localities against user budget, commute ceiling, transit mode, and household personas using transparent utility scoring, explaining every score in plain English.
+- Preserves truth over false precision: missing data is displayed as `null` with a clear explanation rather than masked behind invented defaults.
+
+### Honest by Design
+
+| Metric Category | Source / Method | Classification | Provenance Badge |
+| :--- | :--- | :--- | :--- |
+| Amenity counts (groceries, healthcare, schools, transit) | Overpass API tag queries within walk radii (500 m–1,500 m) | **Measured** | `● high` / `[osm · high]` |
+| Free-flow travel duration and road distance | OSRM road graph routing via `routing.openstreetmap.de` | **Measured** | `● high` / `[osrm · high]` |
+| Peak commute duration | Non-linear congestion multiplier ($\alpha_{\text{city}}$) applied to free-flow time | **Estimated** | `◐ medium` / `[heuristic · medium]` |
+| Monthly rent band (1BHK/2BHK/3BHK) | Municipal tier band baseline scaled by locality centrality and amenity density | **Estimated** | `○ low` / `[tier band · low]` |
+| Safety infrastructure indicator | Physical OSM tags (`amenity=police`, `way[lit=yes]`, `man_made=surveillance`) | **Indicative** | `○ low` / `[osm · low]` |
+
+Confidence is communicated using both a glyph and word (`● high`, `◐ medium`, `○ low`), never color alone. When an external service returns no data or fails, the metric renders as `null` with an accompanying explanatory note.
+
+---
+
+## How It Works
+
+```mermaid
+flowchart TD
+    A["User Preferences<br/>(City, Workplace, Transit Mode, Budget, Household)"] --> B["1. Resolve City<br/>(Nominatim / Photon)"]
+    B --> C["2. Discover Localities<br/>(Overpass API)"]
+    C --> D["3. Route Commute Matrix<br/>(OSRM routed-car / bike / foot)"]
+    D --> E["4. Profile Amenities & Safety<br/>(Overpass API)"]
+    E --> F["5. Score & Rank Candidates<br/>(Locus Engine)"]
+    F --> G["Ranked Recommendations<br/>(With Source Badges & Explanations)"]
+```
+
+The calculation pipeline runs directly against public open infrastructure:
+- **Nominatim & Photon (Komoot):** Geocoding and administrative boundary resolution.
+- **Overpass API:** Candidate locality discovery within municipal boundaries, and amenity/safety counts within pedestrian radii.
+- **OSRM (`routing.openstreetmap.de`):** Distance and free-flow duration matrix calculations across dedicated car, bike, and foot routing profiles.
+
+---
+
+## Engine Modes
+
+| Mode | Config / Trigger | Data Source | Behavior & Header Banner |
+| :--- | :--- | :--- | :--- |
+| `mock` | `VITE_ENGINE_MODE=mock` | In-memory synthetic fixtures | Fast offline development; displays quiet "Sample data" banner. |
+| `snapshot` | `VITE_ENGINE_MODE=snapshot` or `?engine=snapshot` | Authentically recorded live sessions | Pre-recorded sessions for Delhi, Bengaluru, and Pune; displays "Recorded demo data · captured recent session" with a link to switch to live mode. |
+| `live` | `VITE_ENGINE_MODE=live` or `?engine=live` | Public OSM / OSRM / Overpass APIs | Direct querying of public endpoints; no banner displayed. |
+
+Pass `?engine=snapshot` or `?engine=live` in the URL to switch modes instantly. The selection is remembered per browser tab via `sessionStorage`.
+
+---
+
+## Run Locally
 
 ### Prerequisites
 
-- Node.js LTS (v20+ or v22+)
-- npm 10+
+- Node.js (v20+ LTS, verified with Node v26.4.0 and npm 11.7.0)
 
 ### Setup
 
@@ -36,39 +85,108 @@ Users specify a city, a workplace, up to 3 regular destinations, a budget range,
    ```bash
    npm install
    ```
-3. Configuration (`.env`):
+3. Configuration (`.env.local`, optional):
    ```bash
-   cp .env.example .env
+   # Engine mode: snapshot (default for demo), mock, or live
+   VITE_ENGINE_MODE=snapshot
    ```
-   Available engine modes in `.env`:
-   - `VITE_ENGINE_MODE=mock`: Fast offline development with scenario switching (`normal`, `slow`, `partial`, `empty`, `error`, `sparse-data`).
-   - `VITE_ENGINE_MODE=snapshot`: Pre-recorded authentic responses captured from live runs with verified `fetchedAt` timestamps for Delhi, Bengaluru, and Pune (guaranteed 100% stage resilience).
-   - `VITE_ENGINE_MODE=live`: Real-time querying of public Nominatim, Overpass, and OSRM endpoints.
+4. Start development server:
+   ```bash
+   npm run dev
+   ```
+   Open `http://localhost:5173`.
+
+### Scripts
+
+Every script is defined in `package.json`:
+
+| Script | Command | Purpose |
+| :--- | :--- | :--- |
+| `npm run dev` | `vite` | Start local development server |
+| `npm run build` | `tsc --noEmit && vite build` | Typecheck and build production bundle into `dist/` |
+| `npm run preview` | `vite preview` | Locally preview the production build |
+| `npm run check` | `tsc --noEmit && eslint . && vitest run` | Run TypeScript typecheck, ESLint boundary rules, and all test suites |
+| `npm run check:features` | `vitest run tests/featureGuard.test.tsx` | Run UI contract feature ID verification guard |
+| `npm run lint` | `eslint .` | Lint codebase with boundary rules |
+| `npm run test` | `vitest run` | Run test suites |
+| `npm run smoke` | `tsx scripts/smoke.ts` | Run an end-to-end live pipeline search against public endpoints |
+
+### Live Smoke Run
+
+Run an end-to-end live search against public endpoints from your terminal:
+```bash
+npm run smoke -- --city "Pune"
+```
 
 ---
 
-## Running the Application
+## Architecture in Brief
 
-- **Development Server:**
-  ```bash
-  npm run dev
-  ```
-  Open `http://localhost:5173`.
-- **Quality & Test Gate:**
-  ```bash
-  npm run check
-  ```
-  Runs TypeScript typechecking (`tsc --noEmit`), ESLint with architectural boundary verification, and Vitest test suites (112 tests across 11 suites).
-- **Production Build:**
-  ```bash
-  npm run build
-  npm run preview
-  ```
-- **Live Smoke Test:**
-  ```bash
-  npm run smoke -- --city "Pune"
-  ```
-  Runs an end-to-end live pipeline run against external Overpass, Nominatim, and OSRM endpoints and prints timings, candidate counts, and score rankings.
+Locus separates calculation from presentation:
+- **Calculation Engine (`src/engine/`):** Framework-agnostic TypeScript. Houses domain models, providers (Nominatim, Overpass, OSRM), scoring math, queue management, mirror failover, and in-memory caching.
+- **Presentation Layer (`src/ui/`):** React 19 application consuming the engine strictly through `@engine` (`src/engine/index.ts`).
+- **Architectural Boundary:** Enforced at build time via ESLint `no-restricted-imports`. The UI cannot import engine internals, and the engine has zero framework or DOM dependencies.
+
+```
+/
+├─ README.md              # Project overview and run guide
+├─ ARCHITECTURE.md        # Technical architecture, constants, and API contract
+├─ vercel.json            # Vercel SPA rewrite configuration
+├─ public/_redirects      # Static hosting SPA rewrite configuration
+├─ docs/                  # Specifications, verified facts, and design logs
+├─ fixtures/              # Pre-recorded snapshots (Delhi, Bengaluru, Pune)
+├─ src/
+│  ├─ engine/             # Framework-agnostic TS calculation engine (isolated)
+│  │  ├─ domain/          # Types and candidate selection logic
+│  │  ├─ infra/           # HTTP client, rate-limit queues, mirror failover, cache
+│  │  ├─ providers/       # Geocoding, Overpass, OSRM, Rent providers
+│  │  ├─ scoring/         # Utility scoring, safety indicator, explanations
+│  │  ├─ pipeline/        # Progressive search orchestrator
+│  │  ├─ live/            # LiveEngine implementation
+│  │  ├─ snapshot/        # SnapshotEngine demo resilience implementation
+│  │  └─ mock/            # MockEngine implementation & scenario fixtures
+│  └─ ui/                 # React presentation layer (consumes @engine only)
+└─ tests/                 # Unit, contract, and property test suites
+```
+
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) and [`docs/`](docs/) for full details.
+
+---
+
+## Tech Stack
+
+Verified versions from `package.json`:
+- **UI Framework:** React 19 (`react` ^19.0.0, `react-dom` ^19.0.0)
+- **Routing:** React Router 7 (`react-router-dom` ^7.1.0)
+- **Bundler:** Vite 6 (`vite` ^6.1.0)
+- **Language:** TypeScript 5.7 (`typescript` ^5.7.0)
+- **Testing:** Vitest 3 (`vitest` ^3.0.0), Playwright (`playwright` ^1.63.0)
+- **Linting:** ESLint 9 (`eslint` ^9.20.0, `typescript-eslint` ^8.24.0)
+- **Image Processing (dev-only):** Sharp (`sharp` ^0.35.5)
+- **Typography:** Self-hosted Fraunces (`@fontsource/fraunces` ^5.3.0) and Inter (`@fontsource/inter` ^5.3.0)
+
+---
+
+## Data Sources and Attribution
+
+- **Map Data:** © [OpenStreetMap contributors](https://www.openstreetmap.org/copyright) under the Open Database License (ODbL).
+- **Geocoding:** Nominatim (OSMF) and Photon (Komoot).
+- **Routing:** OSRM hosted at `routing.openstreetmap.de` (dedicated car, bike, and foot instances).
+- **Amenities & Features:** Overpass API (Roland Olbricht cluster).
+- **Public Service Usage:** Client-side rate-limiting queues, mirror failover, and local response caching are used to respect community server resources.
+- **Fonts:** [Fraunces](https://github.com/undercasetype/Fraunces) and [Inter](https://github.com/rsms/inter), both licensed under the SIL Open Font License 1.1 (verified in package declarations).
+- **Footer Artwork:** <!-- HUMAN: Artwork attribution / credit for footer image -->
+
+---
+
+## Known Limitations
+
+- **Commute Peak Heuristic:** Free-flow durations are calculated from OpenStreetMap road graphs via OSRM. Peak commute times apply an empirical non-linear congestion formula based on city administrative classification, not live GPS probes or sensor networks.
+- **Rental Band Estimates:** Rental bands reflect municipal tier classifications scaled by locality centrality and amenity density, not live broker listings. Users can input a verified rent override on any locality for instant rescoring.
+- **Safety Infrastructure Indicator:** Sourced strictly from physical OpenStreetMap tags (`amenity=police`, `way[lit=yes]`, `node[man_made=surveillance]`). This is an infrastructure indicator, not police crime incident data.
+- **OpenStreetMap Coverage:** Data density varies significantly across India. Metropolitan centers (Bengaluru, Delhi, Pune) have dense amenity mapping, while smaller towns may have sparser tags.
+- **Live Search Duration on Free Servers:** Live queries depend on community server availability. A single measured Delhi run completed in 111.9 s total with first results rendered at 18.2 s (measured on free public servers, 2026-10-04).
+- **Free Hosting Blocks:** Public Overpass API mirrors return HTTP 406 Not Acceptable to default `*.vercel.app` domains. Live queries on Vercel require configuring a custom domain; Render static sites (`*.onrender.com`) are accepted directly (see [Deploying](#deploying)).
 
 ---
 
@@ -77,113 +195,61 @@ Users specify a city, a workplace, up to 3 regular destinations, a budget range,
 ### Render (Static Site)
 - **Build Command:** `npm run build`
 - **Publish Directory:** `dist`
-- **Required Dashboard Step (SPA Routing):** Render Static Sites do **not** automatically parse `public/_redirects`. Direct navigation or page reloads on deep links (such as `/results`, `/plan`, or `/area/:id`) return HTTP 404 "Not Found" unless an explicit rewrite rule is added in the Render dashboard:
+- **Required Dashboard Step (SPA Routing):** Render Static Sites do not automatically parse `public/_redirects`. Direct visits or reloads on deep links (such as `/results` or `/plan`) return HTTP 404 "Not Found" unless an explicit rewrite rule is added in the Render dashboard:
   1. Open your Static Site service in the Render Dashboard.
   2. Navigate to **Settings** &rarr; **Redirects/Rewrites**.
-  3. Add the following rule:
+  3. Add rule:
      - **Source:** `/*`
      - **Destination:** `/index.html`
      - **Action:** `Rewrite`
-- **Live Mode Compatibility:** Render domains (`*.onrender.com`) have been verified live to receive HTTP 200 OK from public Overpass API mirrors (no 406 Origin/Referer block).
+- **Live Mode Compatibility:** Render domains (`*.onrender.com`) receive HTTP 200 OK from public Overpass API mirrors (verified live 2026-10-04).
 
 ### Vercel
 - Configured via [`vercel.json`](vercel.json) (`/(.*)` &rarr; `/index.html`).
 - **Snapshot & Mock Modes:** Fully functional out of the box.
-- **Live Mode Limitation:** Public Overpass API mirrors block default `*.vercel.app` domains with HTTP 406 Not Acceptable (verified live; see [`docs/VERIFIED_FACTS.md`](docs/VERIFIED_FACTS.md#12-overpass-api-originreferer-rejection-investigation-2026-10-04)). Live queries on Vercel require configuring a custom domain.
+- **Live Mode Limitation:** Public Overpass API mirrors block default `*.vercel.app` domains with HTTP 406 Not Acceptable (verified live 2026-10-04; see [`docs/VERIFIED_FACTS.md`](docs/VERIFIED_FACTS.md#12-overpass-api-originreferer-rejection-investigation-2026-10-04)). Live queries on Vercel require configuring a custom domain.
 
 ---
 
-## UI Presentation Layer
+## Quality and Verification
 
-The Locus presentation layer (`src/ui/`) is a minimalist, magazine-editorial interface adhering to strict honesty rules:
-- **Design Philosophy:** Warm, confident editorial design (Fraunces serif headings, Inter sans UI text). Closer to an architectural magazine than a generic dashboard.
-- **Design Tokens:** All visual values are defined strictly in `src/ui/styles/tokens.css` with zero hex literals elsewhere and full WCAG 2.2 AA and AAA compliance.
-- **Dark Mode Support:** Built-in espresso-charcoal dark mode (`--bg: #1F1D20`, `--ink: #FFF3EB`) with system detection (`@media (prefers-color-scheme: dark)`) and a header theme toggle button (`data-feature="theme-toggle"`).
-- **Self-Contained Cartographic Map (`LocusMap.tsx`):** Responsive SVG cartography that normalizes geographic `lat/lon` coordinates to an SVG bounding box with diamond workplace markers, candidate rank pins, interactive tooltips, and mandatory OpenStreetMap ODbL attribution. Works 100% offline with zero external map tiles or API keys.
-- **Zero External CDN Dependencies:** Self-hosted fonts bundled via npm `@fontsource/*` with zero runtime external script or font requests.
-- **Elimination of Legacy Styles:** Wireframe `skeleton.css` has been permanently eliminated; all 7 screens use scoped CSS modules and design tokens.
-- **Screens Implemented:**
-  1. `/` — Home screen with editorial typography and primary Start CTA.
-  2. `/plan` — 3-step accessible preferences stepper with combobox typeahead, transit mode options, budget sliders, and household presets.
-  3. `/results` — Single-column reading-width candidate list (~760px) with progressive pipeline progress, multi-criteria filtering, and desktop side-by-side cartographic map split.
-  4. `/area/:id` — Deep locality breakdown with score points table, measured amenity radii (walk times at 5 km/h), rent band with user override and rescoring, and physical safety infrastructure indicators.
-  5. `/compare` — Side-by-side metric matrix comparing candidate localities with sticky pinned metric headers for mobile horizontal scrolling and winner markers.
-  6. `/saved` — Persistent saved shortlist with live count badge, comparison shortcuts, and clipboard share integration.
-  7. `/method` — Complete methodology transparency route detailing base weights, query radii, routing status, provenance legend, and an interactive weighting simulator.
-- **Engine Modes & Explicit Toggle:**
-  - `mock`: Default for offline development (`VITE_ENGINE_MODE=mock`). Renders quiet "Sample data" banner.
-  - `snapshot`: Recorded live data sessions (`VITE_ENGINE_MODE=snapshot` or `?engine=snapshot`). Renders "Recorded demo data · captured {date}" with a quiet "Switch to live search" link.
-  - `live`: Live OpenStreetMap network querying (`VITE_ENGINE_MODE=live` or `?engine=live`). Quiet/no banner.
-  - **URL & Tab Persistence:** Pass `?engine=snapshot` or `?engine=live` to switch modes instantly. Remembers choice per browser tab (`sessionStorage`).
-  - **Honest Error Handling:** When external OSM services reject requests (e.g. Overpass 406 on deployed sites) or time out, Locus displays honest diagnostics, never displays "Search complete", and offers both "Try again" and "Use recorded demo cities".
-- **Dev Tools:**
-  - Route Catalog (`/_map`): Complete directory of all routes, mock scenario triggers, and contract handles.
-  - Primitives Showcase (`/primitives`): Demonstrates every UI primitive in every supported state.
-  - Production Gating: Dev tools and scenario switchers are gated via `isDevMode()` (`import.meta.env.DEV`, `?dev=1`, or `locus_dev=1`).
-- **Testing & Verification:**
-  ```bash
-  npm run check           # Typecheck + ESLint + 20 test suites (178 unit tests)
-  npm run check:features  # UI Contract feature ID guard
-  npm run build           # Production bundle build
-  ```
-
-
-
----
-
-## 3-Minute Demo Walkthrough
-
-See **[`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md)** for a complete 3-minute honest walkthrough covering:
-1. Preference entry on `/plan` (City, Workplace anchor, Transport mode, Budget, Household fit).
-2. Progressive 6-stage pipeline on `/results` (`resolving-city` $\rightarrow$ `discovering-localities` $\rightarrow$ `routing` $\rightarrow$ `profiling-amenities` $\rightarrow$ `scoring` $\rightarrow$ `done`).
-3. Locality inspection on `/area/:id` (Raw metrics, points/max, provenance badges, rent override with instant rescore).
-4. Side-by-side comparison on `/compare` and persistent saved shortlist on `/saved`.
-5. Public transparency route on `/method` (Dynamic display of weights, radii, formulas, and limitations).
-
----
-
-## Architecture & Data Provenance
-
+Run the full quality gate:
+```bash
+npm run check
 ```
-/
-├─ README.md              # Project overview, setup, running instructions
-├─ ARCHITECTURE.md        # Architecture, data flow, constants, and API contract
-├─ PROGRESS.md            # Living build tracker with "Resume here" block
-├─ vercel.json            # Vercel SPA rewrite configuration
-├─ public/_redirects      # Netlify / Cloudflare SPA rewrite configuration
-├─ docs/
-│  ├─ DEMO_SCRIPT.md      # 3-minute honest walkthrough script
-│  ├─ MASTER_PROMPT.md    # Source specification & requirements
-│  ├─ DECISIONS.md        # Architectural decision records (ADRs)
-│  ├─ VERIFIED_FACTS.md   # Probed realities of external APIs
-│  ├─ DATA_PROVENANCE.md  # Metric definitions, source tags, confidence rules
-│  ├─ CALIBRATION.md      # Commute alpha congestion calibration table
-│  └─ UI_CONTRACT.md      # UI integration contract and state guide
-├─ fixtures/
-│  ├─ recorded/           # Captured raw responses from external probes
-│  └─ snapshots/          # Pre-recorded offline demo snapshots (Delhi, Bengaluru, Pune)
-├─ src/
-│  ├─ engine/             # Framework-agnostic TS calculation engine (isolated)
-│  │  ├─ domain/          # Core domain types and selection functions
-│  │  ├─ infra/           # HTTP client, rate-limit queues, mirror failover, cache
-│  │  ├─ providers/       # Geocoding, Overpass, OSRM, Rent providers
-│  │  ├─ scoring/         # Budget utility, safety indicator, match scoring, explanations
-│  │  ├─ pipeline/        # 6-stage progressive search orchestrator
-│  │  ├─ features/        # Side-by-side compare, saved store, portal links
-│  │  ├─ live/            # LiveEngine implementation
-│  │  ├─ snapshot/        # SnapshotEngine demo resilience implementation
-│  │  └─ mock/            # MockEngine implementation & scenario fixtures
-│  └─ ui/                 # React presentation layer (consumes @engine only)
-└─ tests/                 # Unit, contract, and property test suites
+This runs TypeScript compilation (`tsc --noEmit`), ESLint boundary enforcement (`eslint .`), and Vitest test suites (unit, contract, and property tests).
+
+Run the UI contract feature guard:
+```bash
+npm run check:features
 ```
 
 ---
 
-## Honest Models & Disclaimers
+## Documentation Index
 
-- **Commute Peak Estimation:** Free-flow road network travel times are calculated directly from OpenStreetMap road graphs via OSRM. Peak commute times are calculated via an empirical non-linear congestion model:
-  $$T_{\text{peak}} = T_{\text{freeflow}} \times (1 + \alpha_{\text{city}} \times (1 - \exp(-d / 8)))$$
-  where $\alpha_{\text{city}}$ is derived strictly from administrative geocoder tags (e.g. 2.3 for Mega-Metros, 1.9 for Dense Metros).
-- **Rental Prices:** Sourced from starter municipal tier bands scaled by locality centrality and amenity density, not live broker listings. Users can input a verified rent override on any locality for instant, high-confidence rescoring.
-- **Safety Indicator:** Sourced exclusively from physical OpenStreetMap infrastructure tags (`amenity=police`, `way[lit=yes]`, `node[man_made=surveillance]`). Explicitly labelled: *"Infrastructure indicator based on physical features, not police crime data."*
-- **Transit Mode:** Public transit GTFS schedules are currently unavailable via unauthenticated open APIs in most Indian cities. Transit commute routing is honestly marked `DISABLED/UNVERIFIED (null)` in v1.
+| Document | Purpose |
+| :--- | :--- |
+| [`ARCHITECTURE.md`](ARCHITECTURE.md) | Technical architecture, data flow, constants, and API contract |
+| [`docs/CALIBRATION.md`](docs/CALIBRATION.md) | Peak congestion formula derivation and empirical ground-truth observations |
+| [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md) | Metric definitions, OpenStreetMap tags, confidence rules, and null semantics |
+| [`docs/DECISIONS.md`](docs/DECISIONS.md) | Architecture Decision Records (ADRs DEC-001 through DEC-022) |
+| [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) | 3-minute honest walkthrough script for evaluation |
+| [`docs/MASTER_PROMPT.md`](docs/MASTER_PROMPT.md) | Source specification and hackathon requirements |
+| [`docs/PROGRESS.md`](docs/PROGRESS.md) | Living engineering build tracker and milestone log |
+| [`docs/UI_CONTRACT.md`](docs/UI_CONTRACT.md) | UI integration contract, data-feature handles, and screen specifications |
+| [`docs/UI_DESIGN.md`](docs/UI_DESIGN.md) | Design system, token contrast tables, motion rules, and brand asset guidelines |
+| [`docs/UI_ENGINE_REQUESTS.md`](docs/UI_ENGINE_REQUESTS.md) | Additive engine capability requests surfaced during UI development |
+| [`docs/UI_MASTER_PROMPT.md`](docs/UI_MASTER_PROMPT.md) | UI presentation layer requirements and design principles |
+| [`docs/UI_PROGRESS.md`](docs/UI_PROGRESS.md) | UI redesign phase completion tracker (U0 through U6) |
+| [`docs/VERIFIED_FACTS.md`](docs/VERIFIED_FACTS.md) | Empirical probe logs, API behaviors, hosting realities, and performance benchmarks |
+
+---
+
+## Team Meridian
+
+<!-- HUMAN: Team member names, roles, and GitHub handles -->
+
+### Background
+
+<!-- HUMAN: Background statement on why Locus was created and the team's motivation -->
